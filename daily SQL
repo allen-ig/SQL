@@ -611,13 +611,13 @@ group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 
 
 /*
-±±¾©¸÷ÉÌÈ¦10ÔÂ·ÝLKA¡¢NKA¡¢·ÇKAÉÌ»§Êý¼°¶ÔÓ¦Á÷Ë®
+ÕÅÑÇ»Ô£¬±±¾©¸÷ÉÌÈ¦10ÔÂ·ÝLKA¡¢NKA¡¢·ÇKAÉÌ»§Êý¼°¶ÔÓ¦Á÷Ë®
 /*
 
 
 SELECT A.*,B.»ÝÇ°Á÷Ë® FROM
 (SELECT b.aoi AS 'ÉÌÈ¦',
-		(CASE WHEN b.ka_extend_lable_id = 1 THEN 'NKA'
+		(CASE WHEN b.ka_extend_lable_id IN (1,2,8) THEN 'NKA'
 			  WHEN b.ka_extend_lable_id IN (9,11) THEN 'LKA'
 			  WHEN b.ka_extend_lable_id IN (-1, 0, 6) THEN '·ÇKA'
 			  END) AS '±êÇ©',
@@ -678,6 +678,7 @@ from dim_business b
 left join fact_order a  on b.shop_id=a.shop_id
 left join dim_aoi c on c.aoi_id=b.aoi_id
 where b.is_test=0 
+	and a.break_type = 0
 	and b.is_delete = 0
 	and b.status=1   
  and b.city_real='±±¾©'
@@ -686,10 +687,10 @@ group by 1,2,3,4,5,6)A
 
 left join
 (select concat('#',b1.shop_id) AS shanghuid,
-		sum(if(b1.order_status = 9 and b1.type = 'logistic' and b1.baidu_rate = 1, b1.baidu_rate,0) as '°Ù¶È×¨ËÍ1Ôª°Ù¶È²¹Ìù',
-		sum(if(b1.order_status = 9 and b1.type = 'logistic' and b1.baidu_rate = 2, b1.baidu_rate,0) as '°Ù¶È×¨ËÍ2Ôª°Ù¶È²¹Ìù',
-		sum(if(b1.order_status = 9 and b1.type = 'logistic' and b1.baidu_rate = 3, b1.baidu_rate,0) as '°Ù¶È×¨ËÍ3Ôª°Ù¶È²¹Ìù',
-		sum(if(b1.order_status = 9 and b1.type = 'logistic' and b1.baidu_rate not in (1,2,3), b1.baidu_rate,0) as '°Ù¶È×¨ËÍÆäËû½ð¶î°Ù¶È²¹Ìù'
+		sum(if(b1.order_status = 9 and b1.type = 'logistics' and b1.baidu_rate = 1, b1.baidu_rate,0)) as '°Ù¶È×¨ËÍ1Ôª°Ù¶È²¹Ìù',
+		sum(if(b1.order_status = 9 and b1.type = 'logistics' and b1.baidu_rate = 2, b1.baidu_rate,0)) as '°Ù¶È×¨ËÍ2Ôª°Ù¶È²¹Ìù',
+		sum(if(b1.order_status = 9 and b1.type = 'logistics' and b1.baidu_rate = 3, b1.baidu_rate,0)) as '°Ù¶È×¨ËÍ3Ôª°Ù¶È²¹Ìù',
+		sum(if(b1.order_status = 9 and b1.type = 'logistics' and b1.baidu_rate not in (1,2,3), b1.baidu_rate,0)) as '°Ù¶È×¨ËÍÆäËû½ð¶î°Ù¶È²¹Ìù'
 fact_yingxiao_info b1
 left join dim_business b2
 		where b1.index_day between 20171001 and 20171029
@@ -700,3 +701,3041 @@ left join dim_business b2
 group by 1)B on A.ÉÌ»§id = B.shanghuid
 
 
+
+
+
+/*
+ÍõµÂ½£,ºÃÀûÀ´ÎÞÐ§¶©µ¥Á÷Ë®ºÍÕ¼±È
+*/
+
+--ÐèÇó1
+
+SELECT CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		b.aoi AS 'ÉÌÈ¦',
+		COUNT(a.order_id) AS '10ÔÂ·ÝÃÅµêÏúÁ¿',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '10ÔÂ·ÝÍê³Éµ¥',
+		COUNT(IF(a.order_status = 10, a.order_id, NULL)) AS '10ÔÂ·ÝÎÞÐ§¶©µ¥',
+		COUNT(IF(a.order_status = 10, a.order_id, NULL))/COUNT(a.order_id) AS 'ÎÞÐ§¶©µ¥Õ¼±È',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS 'Íê³Éµ¥Á÷Ë®',
+		SUM(IF(a.order_status = 10, a.real_total_price/1000, 0)) AS 'ÎÞÐ§¶©µ¥Á÷Ë®',
+		SUM(IF(a.order_status = 10, a.real_total_price, 0))/(SUM(IF(a.order_status = 9, a.real_total_price, 0))+SUM(IF(a.order_status = 10, a.real_total_price, 0))) AS 'ÎÞÐ§¶©µ¥Á÷Ë®Õ¼±È'
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND a.supplier_id = '1558206891'
+		AND a.order_day_key BETWEEN 20171001 AND 20171031
+		AND b.is_test = 0
+		AND b.is_delete = 0
+GROUP BY 1,2,3
+
+
+--ÐèÇó2
+SELECT CONCAT('#',a.supplier_id) AS '¹©Ó¦ÉÌID',
+		b.ka_brand AS 'Æ·ÅÆ',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '10ÔÂ·ÝÍê³Éµ¥',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS '10ÔÂ·ÝÍê³Éµ¥Á÷Ë®',
+		COUNT(IF(a.order_status = 10, a.order_id, NULL)) AS '10ÔÂ·ÝÎÞÐ§¶©µ¥',
+		SUM(IF(a.order_status = 10, a.real_total_price/1000, 0)) AS 'ÎÞÐ§¶©µ¥Á÷Ë®'
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND a.supplier_id = '1558206891'
+		AND a.order_day_key BETWEEN 20171001 AND 20171031
+		AND b.is_delete = 0
+		AND b.is_test = 0
+GROUP BY 1,2
+
+--ÐèÇó3
+SELECT CONCAT('#',CAST(a.order_id AS STRING)) AS 'ÎÞÐ§¶©µ¥±àºÅ',
+		CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		b.aoi AS 'ËùÊôÉÌÈ¦',
+		a.cancel_reason AS 'ÎÞÐ§¶©µ¥Ô­Òò'
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND a.supplier_id = '1558206891'
+		AND a.order_day_key BETWEEN 20171001 AND 20171031
+		AND a.order_status = 10
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		
+		
+/*
+Ð¤ÖÇÃ÷,´óÄïË®½È
+*/
+
+SELECT a.order_day_key AS 'ÈÕÆÚ',
+		b.ka_brand AS 'Æ·ÅÆ',
+		COUNT(DISTINCT a.waimai_release_id) AS '³öµ¥ÉÌ»§Êý',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS 'Íê³Éµ¥',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS 'ÓÅ»ÝÇ°×ÜÁ÷Ë®',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0))/COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '¿Íµ¥¼Û',
+		(SUM(a.product_price/1000) - SUM(a.after_discount_price/1000)) AS 'ÕÛ¿ÛÊÕÈë',
+		SUM(case when a.shop_butie>0 AND a.order_status = 9 then a.shop_butie/1000 else 0 end)
+			+ SUM(case when shop_quan_price>0 AND a.order_status = 9 then a.shop_quan_price/1000 else 0 end) AS 'ÉÌ»§²¹Ìù',
+		SUM(case when a.discount_baidufee_price>0  AND a.order_status = 9 then a.discount_baidufee_price/1000  else 0 end) 
+			+ SUM(case when a.quan_price>0  AND a.order_status = 9 then a.quan_price/1000 else 0 end) AS '°Ù¶È²¹Ìù' 
+		
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND a.order_day_key BETWEEN 20171001 AND 20171031
+		AND a.supplier_id IN ('1775266804')
+		AND b.is_delete = 0
+		AND b.is_test = 0
+GROUP BY 1,2
+				
+
+/*
+ÍõÀûÈº£¬ÈØÀî¼Ç³É¶¼ÃûÐ¡³Ô
+*/
+
+
+
+--¹©Ó¦ÉÌÎ¬¶È
+
+SELECT A.*,
+		A.³öµ¥ÉÌ»§Êý/B.ÔÚÏßºÏ×÷ÉÌ»§Êý AS '¶¯ÏúÂÊ',
+		C.°Ù¶ÈÊÐÕ¼,
+		C.ÃÀÍÅÊÐÕ¼,
+		C.¶öÁËÃ´ÊÐÕ¼
+FROM
+(SELECT CONCAT('#',a.supplier_id) AS '¹©Ó¦ÉÌID',
+		b.ka_brand AS 'Æ·ÅÆ',
+		b.city_real AS '³ÇÊÐ',
+		FLOOR(a.order_day_key/100) AS 'ÔÂ·Ý',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS 'Á÷Ë®',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '¶©µ¥',
+		SUM(case when a.shop_butie>0 AND a.order_status = 9 then a.shop_butie/1000 else 0 end)
+			+ SUM(case when shop_quan_price>0 AND a.order_status = 9 then a.shop_quan_price/1000 else 0 end) AS 'ÉÌ»§²¹Ìù',
+		SUM(case when a.discount_baidufee_price>0  AND a.order_status = 9 then a.discount_baidufee_price/1000  else 0 end) 
+			+ SUM(case when a.quan_price>0  AND a.order_status = 9 then a.quan_price/1000 else 0 end) AS '°Ù¶È²¹Ìù',
+		COUNT(DISTINCT a.waimai_release_id) AS '³öµ¥ÉÌ»§Êý',
+		COUNT(IF(a.real_total_price<20000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[0,20)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<30000 and a.real_total_price>=20000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[20,30)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<40000 and a.real_total_price>=30000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[30,40)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<50000 and a.real_total_price>=40000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[40,50)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<60000 and a.real_total_price>=50000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[50,60)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<70000 and a.real_total_price>=60000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[60,70)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<80000 and a.real_total_price>=70000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[70,80)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<90000 and a.real_total_price>=80000 AND a.order_status = 9, a.order_id,NULL)) AS '¿Íµ¥¼Û[80,90)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<100000 and a.real_total_price>=90000 AND a.order_status = 9,a.order_id,NULL)) AS '¿Íµ¥¼Û[90,100)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<120000 and a.real_total_price>=100000 AND a.order_status = 9,a.order_id,NULL)) AS '¿Íµ¥¼Û[100,120)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<140000 and a.real_total_price>=120000 AND a.order_status = 9,a.order_id,NULL)) AS '¿Íµ¥¼Û[120,140)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price<160000 and a.real_total_price>=140000 AND a.order_status = 9,a.order_id,NULL)) AS'¿Íµ¥¼Û[140,160)¶©µ¥Êý',
+		COUNT(IF(a.real_total_price>=1600000 AND a.order_status = 9,a.order_id,NULL)) AS '¿Íµ¥¼Û[160,¡Þ)¶©µ¥Êý' 
+		
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND a.supplier_id = '1538337277'
+		AND a.order_day_key BETWEEN 20170801 AND 20171031
+		AND b.is_test = 0
+		AND b.is_delete = 0
+GROUP BY 1,2,3,4)A
+		
+JOIN 
+	
+(SELECT CONCAT('#',b.supplier_id) AS gongyingshangid,
+		FLOOR(c.shop_day_key/100) AS yuefen,
+		b.city_real,
+		COUNT(DISTINCT IF(c.sys_status IN (0,6,13,14,15), c.waimai_release_id, NULL)) AS 'ÔÚÏßºÏ×÷ÉÌ»§Êý'
+	FROM fact_business c
+	LEFT JOIN dim_business b ON c.shop_id = b.shop_id
+	WHERE c.status = 1
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND c.shop_day_key BETWEEN 20170801 AND 20171031
+		AND b.supplier_id = '1538337277'
+GROUP BY 1,2,3)B ON A.¹©Ó¦ÉÌID = B.gongyingshangid AND A.ÔÂ·Ý = B.yuefen AND A.³ÇÊÐ = B.city_real
+		
+JOIN		
+		
+(SELECT FLOOR(d.make_date_key/100) AS yuefen,
+		CONCAT('#',b.supplier_id) AS gongyingshangid,
+		b.city_real,
+		SUM(IF(d.source = 'baidu', d.liushui_fee, 0))/sum(d.liushui_fee) AS '°Ù¶ÈÊÐÕ¼',
+		SUM(IF(d.source = 'meituan', d.liushui_fee, 0))/SUM(d.liushui_fee) AS 'ÃÀÍÅÊÐÕ¼',
+		SUM(IF(d.source = 'ele', d.liushui_fee, 0))/SUM(d.liushui_fee) AS '¶öÁËÃ´ÊÐÕ¼',
+		SUM(d.liushui_fee) AS sum_liushui_fee
+	FROM fact_shop_all d
+	LEFT JOIN dim_business b ON d.merge_shop_id = b.wid
+	WHERE d.make_date_key BETWEEN 20170801 AND 20171031
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND b.supplier_id = '1538337277'
+GROUP BY 1,2,3)C ON A.¹©Ó¦ÉÌID = C.gongyingshangid AND A.ÔÂ·Ý = C.yuefen AND A.³ÇÊÐ = C.city_real
+
+
+--ÉÌ»§Î¬¶È
+
+SELECT 
+		CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		FLOOR(c.shop_day_key/100) AS yuefen,
+		SUM(c.url_caipin_num)/SUM(c.caipin_num) AS 'Í¼Æ¬¸²¸ÇÂÊ',
+		AVG(CAST(c.bd_actual_business_time AS DOUBLE)/60) AS 'ÓªÒµÊ±³¤'
+	FROM fact_business c
+	LEFT JOIN dim_business b ON c.shop_id = b.shop_id
+	WHERE c.status = 1
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND c.shop_day_key BETWEEN 20170801 AND 20171031
+		AND b.supplier_id = '1538337277'
+GROUP BY 1,2,3
+
+		
+
+
+/*
+Ð»Á¢Ö¾
+*/
+
+
+
+--¡¾±±¾©È«Á¿¡¿ ÈÕÆÚ	ka±êÇ© ¶©µ¥Êý	Íê³É¶©µ¥Êý	ÓÅ»ÝÇ°Á÷Ë®	ÓÅ»ÝºóÁ÷Ë®	ÀÏÓÃ»§	ÐÂÓÃ»§
+-- 	°Ù¶È²¹Ìù Âú¼õ°Ù¶È²¹Ìù	ÉÌ»§²¹Ìù    Ç°Ì¨²¹Ìù
+--	ÆØ¹âuv	ÆØ¹âpv	·ÃÎÊuv	·ÃÎÊpv
+SELECT t1.order_day_key AS 'ÈÕÆÚ'
+    , t1.ka_label AS 'ka±êÇ©'
+    , SUM(t1.xiadan) AS '¶©µ¥Êý'
+    , SUM(t1.wandan) AS 'Íê³É¶©µ¥'
+    , SUM(t1.qianliushui) AS 'ÓÅ»ÝÇ°Á÷Ë®'
+    , SUM(t1.houliushui) AS 'ÓÅ»ÝºóÁ÷Ë®'
+    , SUM(t1.new_user) AS 'ÀÏÓÃ»§'
+    , SUM(t1.old_user) AS 'ÐÂÓÃ»§'
+    , SUM(t1.°Ù¶È²¹Ìù) AS '°Ù¶È²¹Ìù'
+    , SUM(t1.ÉÌ»§²¹Ìù) AS 'ÉÌ»§²¹Ìù'
+    , SUM(t1.Ç°Ì¨²¹Ìù) AS 'Ç°Ì¨²¹Ìù'
+    , SUM(t1.Á¢¼õ°Ù¶È²¹Ìù) AS 'Á¢¼õ°Ù¶È²¹Ìù'
+    , SUM(t2.ÆØ¹âPV) AS 'ÆØ¹âuv'
+    , SUM(t2.·ÃÎÊpv) AS '·ÃÎÊuv'
+    , SUM(t2.ÆØ¹âuv) AS 'ÆØ¹âpv'
+    , SUM(t2.·ÃÎÊuv) AS '·ÃÎÊpv'
+FROM 
+
+    (SELECT a.order_day_key 
+        , (CASE WHEN b.ka_extend_lable_id = 1 THEN 'NKA'
+            WHEN b.ka_extend_lable_id IN (9,11) THEN 'LKA'
+            WHEN b.ka_extend_lable_id IN (-1,0,6) THEN '·ÇKA'
+            WHEN b.ka_extend_lable_id = 2 THEN 'ÏÂÎç²è'
+            WHEN b.ka_extend_lable_id = 3 THEN 'ÖÊÏíÉú»î'
+            WHEN b.ka_extend_lable_id = 4 THEN 'ÉúÏÊ'
+            WHEN b.ka_extend_lable_id = 5 THEN 'ÉÌ³¬'
+            WHEN b.ka_extend_lable_id = 7 THEN 'Ò©Æ·'
+            WHEN b.ka_extend_lable_id = 8 THEN 'ÏÊ»¨'
+            WHEN b.ka_extend_lable_id = 10 THEN 'ÉúÌ¬Á´'
+            ELSE 'others' END) AS ka_label
+        , b.waimai_release_id 
+        , COUNT(a.order_id) AS xiadan
+        , COUNT(CASE WHEN order_status = 9 THEN a.order_id ELSE null END) AS wandan 
+        , SUM(CASE WHEN order_status = 9 THEN a.real_total_price ELSE 0 END)/1000 AS qianliushui 
+        , SUM(CASE WHEN order_status = 9 THEN a.price ELSE 0 END)/1000 AS houliushui
+        , COUNT(CASE WHEN anticheat_new_user_flag = 1 THEN pass_uid ELSE null END) AS new_user 
+        , COUNT(DISTINCT CASE WHEN anticheat_new_user_flag != 1 THEN pass_uid ELSE null END) AS old_user 
+        , (SUM(CASE WHEN a.discount_baidufee_price>0 AND a.order_status=9 then a.discount_baidufee_price/1000 else 0 end)
+        + SUM(CASE WHEN a.quan_price>0 AND a.order_status=9 then a.quan_price/1000 ELSE 0 end)) AS '°Ù¶È²¹Ìù'
+        , (SUM(CASE WHEN a.shop_butie>0 AND a.order_status=9 THEN a.shop_butie/1000 ELSE 0 END)
+        + SUM(CASE WHEN a.shop_quan_price>0 AND a.order_status=9 THEN a.shop_quan_price/1000 ELSE 0 END)) AS 'ÉÌ»§²¹Ìù' 
+        , SUM(if(a.order_status=9,a.pay,0))/1000 AS 'Ç°Ì¨²¹Ìù'
+        , SUM(CASE WHEN a.order_status = 9 AND a.jian_baidu_fee > 0 THEN a.jian_baidu_fee ELSE 0 END)/1000 AS 'Á¢¼õ°Ù¶È²¹Ìù'
+
+    FROM dim_business AS b
+    LEFT JOIN fact_order AS a ON b.shop_id = a.shop_id 
+    JOIN dim_aoi AS c ON b.aoi_id = c.aoi_id
+    WHERE b.city_real = '±±¾©' 
+        AND a.order_day_key BETWEEN 20171001 AND 20171031 
+        AND b.is_test = 0 
+        AND b.is_delete = 0 
+        AND b.status = 1 
+        AND a.break_type = 0 
+        AND a.is_test = 0 
+    GROUP BY 1,2,3) AS t1  
+
+LEFT JOIN 
+
+    (SELECT a.shop_day_key
+        , a.waimai_release_id
+        , SUM(shop_baoguang_pv) AS 'ÆØ¹âPV'
+        , SUM(shop_pv) AS '·ÃÎÊpv'
+        , SUM(shop_baoguang_uv) AS 'ÆØ¹âuv'
+        , SUM(shop_uv) AS '·ÃÎÊuv'
+    
+    FROM fact_business AS a 
+    JOIN dim_business AS b ON a.shop_id = b.shop_id 
+    JOIN dim_aoi AS c ON b.aoi_id = c.aoi_id
+    WHERE shop_day_key BETWEEN 20171001 AND 20171031
+        AND a.is_test = 0 
+        AND b.status = 1 
+        AND b.city_real = '±±¾©' 
+    GROUP BY 1,2
+    ) AS t2
+ON t1.order_day_key = t2.shop_day_key AND t1.waimai_release_id = t2.waimai_release_id 
+GROUP BY t1.order_day_key,t1.ka_label
+
+
+
+-- ¡¾»î¶¯Êý¾Ý-ÉÌ»§Î¬¶È¡¿
+--  ÈÕÆÚ  ka±êÇ© ÐÇÏµ	´óÇø	³öµ¥ÉÌ»§Êý	¶©µ¥Êý	Íê³É¶©µ¥Êý	ÓÅ»ÝÇ°Á÷Ë®	ÓÅ»ÝºóÁ÷Ë®	ÀÏÓÃ»§	ÐÂÓÃ»§
+--  °Ù¶È²¹Ìù    ÉÌ»§²¹Ìù	Ç°Ì¨²¹Ìù     Âú¼õ°Ù¶È²¹Ìù     °Ù¶È×¨ËÍÁ¢¼õ  
+-- 	ÆØ¹âuv	ÆØ¹âpv	·ÃÎÊuv	·ÃÎÊpv	
+
+use waimai;SELECT t1.order_day_key AS 'ÈÕÆÚ'
+    , t1.ka±êÇ© AS KA
+    , t1.ÏúÊÛ´óÇø AS 'ÏúÊÛ´óÇø'
+    , t1.ÐÇÏµ AS 'ÐÇÏµ'
+    , COUNT(DISTINCT CASE WHEN wandan >= 0 THEN t1.waimai_release_id ELSE null END) AS '³öµ¥ÉÌ»§Êý'
+    , SUM(t1.xiadan) AS 'ÏÂµ¥Á¿'
+    , SUM(t1.wandan) AS 'Íê³Éµ¥'
+    , SUM(t1.qianliushui) AS 'Ç°Á÷Ë®'
+    , SUM(t1.houliushui) AS 'ºóÁ÷Ë®'
+    , SUM(t1.new_user) AS 'ÐÂÓÃ»§Êý'
+    , SUM(t1.old_user) AS 'ÀÏÓÃ»§Êý'
+    , SUM(t1.baidu_butie) AS '°Ù¶È²¹Ìù'
+    , SUM(t1.shanghu_butie) AS 'ÉÌ»§²¹Ìù'
+    , SUM(t1.qiantai_butie) AS 'Ç°Ì¨²¹Ìù'
+    , SUM(t1.lijian_baidu_butie) AS 'Á¢¼õ°Ù¶È²¹Ìù'
+
+    , SUM(t1.logistics_jian_p) AS '°Ù¶È×¨ËÍÁ¢¼õ½ð¶î'
+    , SUM(t3.bd_rate) AS '°Ù¶È×¨ËÍ-°Ù¶È²¹Ìù'
+    , SUM(t3.sp_rate) AS '°Ù¶È×¨ËÍ-ÉÌ»§²¹Ìù'
+
+    , SUM(t2.ÆØ¹âPV)  AS 'ÆØ¹âPV'
+    , SUM(t2.·ÃÎÊpv) AS '·ÃÎÊpv'
+    , SUM(t2.ÆØ¹âuv) AS 'ÆØ¹âuv'
+    , SUM(t2.·ÃÎÊuv) AS '·ÃÎÊuv'
+FROM 
+
+    (SELECT a.order_day_key 
+        , (CASE WHEN b.ka_extend_lable_id = 1 THEN 'NKA'
+            WHEN b.ka_extend_lable_id IN (9,11) THEN 'LKA'
+            WHEN b.ka_extend_lable_id IN (-1,0,6) THEN '·ÇKA'
+            WHEN b.ka_extend_lable_id = 2 THEN 'ÏÂÎç²è'
+            WHEN b.ka_extend_lable_id = 3 THEN 'ÖÊÏíÉú»î'
+            WHEN b.ka_extend_lable_id = 4 THEN 'ÉúÏÊ'
+            WHEN b.ka_extend_lable_id = 5 THEN 'ÉÌ³¬'
+            WHEN b.ka_extend_lable_id = 7 THEN 'Ò©Æ·'
+            WHEN b.ka_extend_lable_id = 8 THEN 'ÏÊ»¨'
+            WHEN b.ka_extend_lable_id = 10 THEN 'ÉúÌ¬Á´'
+            ELSE 'others' END) AS 'ka±êÇ©'
+        , c.city_region AS 'ÏúÊÛ´óÇø'
+        , split_part(b.area,'£¨',1) AS 'ÐÇÏµ'
+        , b.waimai_release_id 
+        , b.shop_id 
+        , COUNT(a.order_id) AS xiadan
+        , COUNT(CASE WHEN order_status = 9 THEN a.order_id ELSE null END) AS wandan 
+        , SUM(CASE WHEN order_status = 9 THEN a.real_total_price ELSE 0 END)/1000 AS qianliushui 
+        , SUM(CASE WHEN order_status = 9 THEN a.price ELSE 0 END)/1000 AS houliushui
+        , COUNT(CASE WHEN anticheat_new_user_flag = 1 THEN pass_uid ELSE null END) AS new_user 
+        , COUNT(DISTINCT CASE WHEN anticheat_new_user_flag != 1 THEN pass_uid ELSE null END) AS old_user 
+        , (SUM(CASE WHEN a.discount_baidufee_price>0 AND a.order_status=9 then a.discount_baidufee_price/1000 else 0 end)
+        + SUM(CASE WHEN a.quan_price>0 AND a.order_status=9 then a.quan_price/1000 ELSE 0 end)) AS baidu_butie 
+        , (SUM(CASE WHEN a.shop_butie>0 AND a.order_status=9 THEN a.shop_butie/1000 ELSE 0 END)
+        + SUM(CASE WHEN a.shop_quan_price>0 AND a.order_status=9 THEN a.shop_quan_price/1000 ELSE 0 END)) AS shanghu_butie
+        , SUM(if(a.order_status=9,a.pay,0))/1000 AS qiantai_butie
+        , SUM(CASE WHEN a.order_status = 9 AND a.jian_baidu_fee > 0 THEN a.jian_baidu_fee ELSE 0 END)/1000 AS lijian_baidu_butie
+        , SUM(CASE WHEN a.order_status = 9 AND a.logistics_jian_price > 0 THEN a.logistics_jian_price ELSE 0 END)/1000 AS logistics_jian_p 
+
+    FROM dim_business AS b
+    LEFT JOIN fact_order AS a ON b.shop_id = a.shop_id 
+    JOIN dim_aoi AS c ON b.aoi_id = c.aoi_id
+    WHERE b.city_real = '±±¾©' 
+        AND a.order_day_key BETWEEN 20171001 AND 20171031 
+        AND b.is_test = 0 
+        AND b.is_delete = 0 
+        AND b.status = 1 
+        AND a.break_type = 0 
+        AND a.is_test = 0 
+        AND a.waimai_release_id IN
+            (SELECT distinct waimai_release_id
+                FROM fact_shop_all_activity
+                WHERE activity_id IN ('sh2010097',
+'sh2092287',
+'sh2212587',
+'sh2092462',
+'sh1913191',
+'sh2004932')
+                AND index_day BETWEEN 20171001 AND 20171031 )
+    GROUP BY 1,2,3,4,5,6) AS t1  
+
+LEFT JOIN 
+
+    (SELECT a.shop_day_key
+        , a.waimai_release_id
+        , SUM(shop_baoguang_pv) AS 'ÆØ¹âPV'
+        , SUM(shop_pv) AS '·ÃÎÊpv'
+        , SUM(shop_baoguang_uv) AS 'ÆØ¹âuv'
+        , SUM(shop_uv) AS '·ÃÎÊuv'
+    
+    FROM fact_business AS a 
+    JOIN dim_business AS b ON a.shop_id = b.shop_id 
+    JOIN dim_aoi AS c ON b.aoi_id = c.aoi_id
+    WHERE shop_day_key BETWEEN 20171001 AND 20171031
+        AND a.is_test = 0 
+        AND b.status = 1 
+        AND b.city_real = '±±¾©' 
+    GROUP BY 1,2
+    ) AS t2
+ON t1.order_day_key = t2.shop_day_key AND t1.waimai_release_id = t2.waimai_release_id 
+
+LEFT JOIN
+    (SELECT shop_id 
+        , index_day 
+        , SUM(baidu_rate)/1000 AS bd_rate 
+        , SUM(agent_rate)/1000 AS agent_rate
+        , SUM(shop_rate)/1000 AS sp_rate 
+    FROM fact_yingxiao_info 
+    WHERE index_day BETWEEN 20171001 AND 20171031 
+        AND type = 'logistics'
+        AND order_status = 9 
+    GROUP BY shop_id,index_day 
+    ) AS t3 
+ON t1.order_day_key = t3.index_day AND t1.shop_id = t3.shop_id 
+
+GROUP BY 1,2,3,4    
+
+
+
+-- ´óÇø	ÐÇÏµ	ÉÌÈ¦	ka±êÇ©	¹©Ó¦ÉÌid	¹©Ó¦ÉÌÃû³Æ	ÉÌ»§Ãû³Æ	ÉÌ»§id
+
+SELECT c.city_region AS 'ÏúÊÛ´óÇø'
+    , split_part(b.area,'£¨',1) AS 'ÐÇÏµ'
+    , b.aoi AS 'ÉÌÈ¦'
+    , (CASE WHEN b.ka_extend_lable_id = 1 THEN 'NKA'
+            WHEN b.ka_extend_lable_id IN (9,11) THEN 'LKA'
+            WHEN b.ka_extend_lable_id IN (-1,0,6) THEN '·ÇKA'
+            WHEN b.ka_extend_lable_id = 2 THEN 'ÏÂÎç²è'
+            WHEN b.ka_extend_lable_id = 3 THEN 'ÖÊÏíÉú»î'
+            WHEN b.ka_extend_lable_id = 4 THEN 'ÉúÏÊ'
+            WHEN b.ka_extend_lable_id = 5 THEN 'ÉÌ³¬'
+            WHEN b.ka_extend_lable_id = 7 THEN 'Ò©Æ·'
+            WHEN b.ka_extend_lable_id = 8 THEN 'ÏÊ»¨'
+            WHEN b.ka_extend_lable_id = 10 THEN 'ÉúÌ¬Á´'
+            ELSE 'others' END) AS 'ka±êÇ©'
+    , b.supplier_id AS '¹©Ó¦ÉÌid'
+    , c.name AS '¹©Ó¦ÉÌÃû³Æ'
+    , CONCAT('#',b.waimai_release_id) AS 'ÉÌ»§id'
+    , b.busi_name AS 'ÉÌ»§Ãû³Æ'
+FROM dim_business AS b 
+JOIN fact_shop_all_activity AS d ON b.waimai_release_id = d.waimai_release_id 
+JOIN dim_supplier AS f ON b.supplier_id = f.supplier_id 
+JOIN dim_aoi AS c ON b.aoi_id = c.aoi_id
+WHERE b.city_real = '±±¾©' 
+        AND d.index_day BETWEEN 20171001 AND 20171006 -- »î¶¯Ê±¼ä
+        AND b.is_test = 0 
+        AND b.is_delete = 0 
+        AND b.sys_status IN (0,6,13,14,15) -- ÉÌ»§ÔÚÏßºÏ×÷ÖÐ
+        AND activity_id IN ('sh2010097',
+                            'sh2092287',
+                            'sh2212587')
+GROUP BY 1,2,3,4,5,6,7,8
+
+
+
+-- ²Î¼Ó»î¶¯µÄÉÌ»§ÐÅÏ¢ 
+
+SELECT c.city_region AS 'ÏúÊÛ´óÇø'
+    , split_part(b.area,'£¨',1) AS 'ÐÇÏµ'
+    , b.aoi AS 'ÉÌÈ¦'
+    , (CASE WHEN b.ka_extend_lable_id = 1 THEN 'NKA'
+            WHEN b.ka_extend_lable_id IN (9,11) THEN 'LKA'
+            WHEN b.ka_extend_lable_id IN (-1,0,6) THEN '·ÇKA'
+            WHEN b.ka_extend_lable_id = 2 THEN 'ÏÂÎç²è'
+            WHEN b.ka_extend_lable_id = 3 THEN 'ÖÊÏíÉú»î'
+            WHEN b.ka_extend_lable_id = 4 THEN 'ÉúÏÊ'
+            WHEN b.ka_extend_lable_id = 5 THEN 'ÉÌ³¬'
+            WHEN b.ka_extend_lable_id = 7 THEN 'Ò©Æ·'
+            WHEN b.ka_extend_lable_id = 8 THEN 'ÏÊ»¨'
+            WHEN b.ka_extend_lable_id = 10 THEN 'ÉúÌ¬Á´'
+            ELSE 'others' END) AS 'ka±êÇ©'
+    , b.supplier_id AS '¹©Ó¦ÉÌid'
+    , c.name AS '¹©Ó¦ÉÌÃû³Æ'
+    , CONCAT('#',b.waimai_release_id) AS 'ÉÌ»§id'
+    , b.busi_name AS 'ÉÌ»§Ãû³Æ'
+FROM dim_business AS b 
+JOIN fact_shop_all_activity AS d ON b.waimai_release_id = d.waimai_release_id 
+JOIN dim_supplier AS f ON b.supplier_id = f.supplier_id 
+JOIN dim_aoi AS c ON b.aoi_id = c.aoi_id
+WHERE b.city_real = '±±¾©' 
+        AND d.index_day BETWEEN 20171001 AND 20171006 -- »î¶¯Ê±¼ä
+        AND b.is_test = 0 
+        AND b.is_delete = 0 
+        AND b.sys_status IN (0,6,13,14,15) -- ÉÌ»§ÔÚÏßºÏ×÷ÖÐ
+        AND activity_id IN ('sh2010097',
+                            'sh2092287',
+                            'sh2212587')
+GROUP BY 1,2,3,4,5,6,7,8
+
+
+
+
+-- ±±¾©È«Á¿Êý¾Ý£¬·ÖÒµÎñÏß£¬²»Í¬¿Íµ¥¼ÛÏÂµÄÍê³Éµ¥ 
+SELECT a.order_day_key AS 'ÈÕÆÚ'
+    , (CASE WHEN b.ka_extend_lable_id = 1 THEN 'NKA'
+            WHEN b.ka_extend_lable_id in (9,11) THEN 'LKA'
+            WHEN b.ka_extend_lable_id in (-1,0,6) THEN '·ÇKA'
+            WHEN b.ka_extend_lable_id = 2 THEN 'ÏÂÎç²è'
+            WHEN b.ka_extend_lable_id = 3 THEN 'ÖÊÏíÉú»î'
+            WHEN b.ka_extend_lable_id = 4 THEN 'ÉúÏÊ'
+            WHEN b.ka_extend_lable_id = 5 THEN 'ÉÌ³¬'
+            WHEN b.ka_extend_lable_id = 7 THEN 'Ò©Æ·'
+            WHEN b.ka_extend_lable_id = 8 THEN 'ÏÊ»¨'
+            WHEN b.ka_extend_lable_id = 10 THEN 'ÉúÌ¬Á´'
+            ELSE 'others' END) AS 'ka±êÇ©'
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 0 AND a.real_total_price/1000 < 10 THEN a.order_id ELSE null END) AS qian_wan_0
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 10 AND a.real_total_price/1000 < 15 THEN a.order_id ELSE null END) AS qian_wan_1
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 15 AND a.real_total_price/1000 < 20 THEN a.order_id ELSE null END) AS qian_wan_2 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 20 AND a.real_total_price/1000 < 25 THEN a.order_id ELSE null END) AS qian_wan_3
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 25 AND a.real_total_price/1000 < 30 THEN a.order_id ELSE null END) AS qian_wan_4 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 30 AND a.real_total_price/1000 < 35 THEN a.order_id ELSE null END) AS qian_wan_5
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 35 AND a.real_total_price/1000 < 40 THEN a.order_id ELSE null END) AS qian_wan_6 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 40 AND a.real_total_price/1000 < 45 THEN a.order_id ELSE null END) AS qian_wan_7
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 45 AND a.real_total_price/1000 < 50 THEN a.order_id ELSE null END) AS qian_wan_8 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 50 AND a.real_total_price/1000 < 55 THEN a.order_id ELSE null END) AS qian_wan_9
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 55 AND a.real_total_price/1000 < 60 THEN a.order_id ELSE null END) AS qian_wan_10 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 60 AND a.real_total_price/1000 < 65 THEN a.order_id ELSE null END) AS qian_wan_11
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 65 AND a.real_total_price/1000 < 70 THEN a.order_id ELSE null END) AS qian_wan_12 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 70 AND a.real_total_price/1000 < 75 THEN a.order_id ELSE null END) AS qian_wan_13
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 75 AND a.real_total_price/1000 < 80 THEN a.order_id ELSE null END) AS qian_wan_14 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 80 AND a.real_total_price/1000 < 85 THEN a.order_id ELSE null END) AS qian_wan_15
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 85 AND a.real_total_price/1000 < 90 THEN a.order_id ELSE null END) AS qian_wan_16 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 90 AND a.real_total_price/1000 < 95 THEN a.order_id ELSE null END) AS qian_wan_17
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 95 AND a.real_total_price/1000 < 100 THEN a.order_id ELSE null END) AS qian_wan_18 
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 100 AND a.real_total_price/1000 < 200 THEN a.order_id ELSE null END) AS qian_wan_19
+    , COUNT(CASE WHEN a.real_total_price/1000 >= 200 THEN a.order_id ELSE null END) AS qian_wan_20 
+    
+    , COUNT(CASE WHEN a.price/1000 >= 0 AND a.price/1000 < 10 THEN a.order_id ELSE null END) AS hou_wan_0
+    , COUNT(CASE WHEN a.price/1000 >= 10 AND a.price/1000 < 15 THEN a.order_id ELSE null END) AS hou_wan_1
+    , COUNT(CASE WHEN a.price/1000 >= 15 AND a.price/1000 < 20 THEN a.order_id ELSE null END) AS hou_wan_2 
+    , COUNT(CASE WHEN a.price/1000 >= 20 AND a.price/1000 < 25 THEN a.order_id ELSE null END) AS hou_wan_3
+    , COUNT(CASE WHEN a.price/1000 >= 25 AND a.price/1000 < 30 THEN a.order_id ELSE null END) AS hou_wan_4 
+    , COUNT(CASE WHEN a.price/1000 >= 30 AND a.price/1000 < 35 THEN a.order_id ELSE null END) AS hou_wan_5
+    , COUNT(CASE WHEN a.price/1000 >= 35 AND a.price/1000 < 40 THEN a.order_id ELSE null END) AS hou_wan_6 
+    , COUNT(CASE WHEN a.price/1000 >= 40 AND a.price/1000 < 45 THEN a.order_id ELSE null END) AS hou_wan_7
+    , COUNT(CASE WHEN a.price/1000 >= 45 AND a.price/1000 < 50 THEN a.order_id ELSE null END) AS hou_wan_8 
+    , COUNT(CASE WHEN a.price/1000 >= 50 AND a.price/1000 < 55 THEN a.order_id ELSE null END) AS hou_wan_9
+    , COUNT(CASE WHEN a.price/1000 >= 55 AND a.price/1000 < 60 THEN a.order_id ELSE null END) AS hou_wan_10 
+    , COUNT(CASE WHEN a.price/1000 >= 60 AND a.price/1000 < 65 THEN a.order_id ELSE null END) AS hou_wan_11
+    , COUNT(CASE WHEN a.price/1000 >= 65 AND a.price/1000 < 70 THEN a.order_id ELSE null END) AS hou_wan_12 
+    , COUNT(CASE WHEN a.price/1000 >= 70 AND a.price/1000 < 75 THEN a.order_id ELSE null END) AS hou_wan_13
+    , COUNT(CASE WHEN a.price/1000 >= 75 AND a.price/1000 < 80 THEN a.order_id ELSE null END) AS hou_wan_14 
+    , COUNT(CASE WHEN a.price/1000 >= 80 AND a.price/1000 < 85 THEN a.order_id ELSE null END) AS hou_wan_15
+    , COUNT(CASE WHEN a.price/1000 >= 85 AND a.price/1000 < 90 THEN a.order_id ELSE null END) AS hou_wan_16 
+    , COUNT(CASE WHEN a.price/1000 >= 90 AND a.price/1000 < 95 THEN a.order_id ELSE null END) AS hou_wan_17
+    , COUNT(CASE WHEN a.price/1000 >= 95 AND a.price/1000 < 100 THEN a.order_id ELSE null END) AS hou_wan_18 
+    , COUNT(CASE WHEN a.price/1000 >= 100 AND a.price/1000 < 200 THEN a.order_id ELSE null END) AS hou_wan_19
+    , COUNT(CASE WHEN a.price/1000 >= 200 THEN a.order_id ELSE null END) AS hou_wan_20 
+
+FROM dim_business AS b 
+LEFT JOIN fact_order AS a ON b.shop_id = a.shop_id 
+WHERE b.city_real = '±±¾©' 
+        AND a.order_day_key BETWEEN 20170926 AND 20170927 
+        AND b.is_test = 0 
+        AND b.is_delete = 0 
+        AND b.status = 1 
+        AND a.break_type = 0 
+        AND a.is_test = 0 
+        AND b.sys_status IN (0,6,13,14,15) -- ÔÚÏßºÏ×÷ÖÐµÄÉÌ»§
+        AND a.order_status = 9 
+GROUP BY 1,2  
+
+
+
+
+/*
+¹ØÔ½ °´¿Íµ¥¼Û10ÔªÎª»ù±¾µ¥Î»·ÖÇø¼ä 
+*/
+
+
+
+
+SELECT A.È«³ÇËÍÍê³Éµ¥½ð¶îÇø¼ä,
+		SUM(B.È«³ÇËÍÍê³É¶©µ¥Êý),
+		SUM(B.Ã¿µ¥ÅäËÍ·Ñ)/SUM(B.È«³ÇËÍÍê³É¶©µ¥Êý)
+FROM 
+(SELECT  a.order_id,
+		(CASE WHEN
+			 a.real_total_price<20000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[0,20)'
+		WHEN a.real_total_price<30000 and a.real_total_price>=20000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[20,30)'
+		WHEN a.real_total_price<40000 and a.real_total_price>=30000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[30,40)'
+		WHEN a.real_total_price<50000 and a.real_total_price>=40000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[40,50)'
+		WHEN a.real_total_price<60000 and a.real_total_price>=50000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[50,60)'
+		WHEN a.real_total_price<70000 and a.real_total_price>=60000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[60,70)'
+		WHEN a.real_total_price<80000 and a.real_total_price>=70000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[70,80)'
+		WHEN a.real_total_price<90000 and a.real_total_price>=80000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[80,90)'
+		WHEN a.real_total_price<100000 and a.real_total_price>=90000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[90,100)'
+		WHEN a.real_total_price<110000 and a.real_total_price>=100000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[100,110)'
+		WHEN a.real_total_price<120000 and a.real_total_price>=110000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[110,120)'
+		WHEN a.real_total_price<130000 and a.real_total_price>=120000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[120,130)'
+		WHEN a.real_total_price<140000 and a.real_total_price>=130000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[130,140)'
+		WHEN a.real_total_price<150000 and a.real_total_price>=140000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[140,150)'
+		WHEN a.real_total_price<160000 and a.real_total_price>=150000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[150,160)'
+		WHEN a.real_total_price<170000 and a.real_total_price>=160000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[160,170)'
+		WHEN a.real_total_price<180000 and a.real_total_price>=170000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[170,180)'
+		WHEN a.real_total_price<190000 and a.real_total_price>=180000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[180,190)'
+		WHEN a.real_total_price<200000 and a.real_total_price>=190000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[190,200)'
+		WHEN a.real_total_price>=200000 AND a.order_status = 9 THEN '¿Íµ¥¼Û[200,¡Þ)'
+		END) AS 'È«³ÇËÍÍê³Éµ¥½ð¶îÇø¼ä'
+	FROM fact_order a 
+	WHERE a.break_type = 0
+		AND a.order_day_key BETWEEN 20171001 AND 20171031
+		AND a.order_id IN		
+(SELECT a.out_order_id
+	FROM fact_wuliu_order a
+	WHERE a.order_status = 9
+		AND a.order_type = 1004
+		AND a.city_name = '±±¾©'
+		AND a.order_day_key BETWEEN 20171001 AND 20171031)
+)A
+
+JOIN
+
+(SELECT a.out_order_id,
+		a.shipping_money AS 'Ã¿µ¥ÅäËÍ·Ñ',
+		COUNT(IF(a.order_status = 9,a.out_order_id,NULL)) AS 'È«³ÇËÍÍê³É¶©µ¥Êý'
+	FROM fact_wuliu_order a
+	WHERE a.order_status = 9
+		AND a.order_type = 1004
+		AND a.city_name = '±±¾©'
+		AND a.order_day_key BETWEEN 20171001 AND 20171031
+GROUP BY 1,2)B ON A.order_id = B.out_order_id
+GROUP BY 1
+
+
+
+/*
+Áõ·É ÉîÛÚNKA ¾ÅÃ«¾Å
+*/
+
+
+
+
+SELECT A.*,
+		B.caipin AS 'ÈÈÏú²Ë',
+		C.*
+FROM
+(SELECT CONCAT('#', b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS 'Á÷Ë®',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0))/COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '¿Íµ¥¼Û',
+		COUNT(CASE WHEN anticheat_new_user_flag = 1 THEN pass_uid ELSE null END) AS 'ÐÂÓÃ»§',
+        COUNT(DISTINCT CASE WHEN anticheat_new_user_flag != 1 THEN pass_uid ELSE null END) AS 'ÀÏÓÃ»§'		
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND a.order_day_key BETWEEN 20170801 AND 20171031
+		AND a.supplier_id = '1741351701'
+GROUP BY 1,2)A 
+
+JOIN		
+
+(SELECT CONCAT('#',b.wid ) AS shanghuid,
+		SUM(c.shop_baoguang_uv) AS 'ÆØ¹âuv',
+		SUM(c.shop_baoguang_pv) AS 'ÆØ¹âpv'
+FROM fact_business c
+LEFT JOIN dim_business b ON b.shop_id = c.shop_id
+WHERE c.supplier_id = '1741351701'
+	AND c.shop_day_key BETWEEN 20170801 AND 20171031
+	AND c.status = 1
+	AND b.is_delete = 0
+	AND b.is_test = 0
+GROUP BY 1)C
+ON A.ÉÌ»§ID = C.shanghuid
+
+LEFT JOIN
+
+(select *
+from 
+(select *,ROW_NUMBER() OVER(PARTITION BY T1.ÉÌ»§ID ORDER BY T1.ÏúÁ¿ desc) paixu
+from 
+(
+select
+	b2.busi_name as 'ÉÌ»§Ãû³Æ',
+	concat('#',b2.wid) as 'ÉÌ»§ID',
+	d.caipin_name ,
+	sum(d.number) as 'ÏúÁ¿'
+from 
+	dim_business b2 
+	left join fact_caipin_details d on b2.shop_id=d.shop_id
+where 
+	b2.is_test=0 and b2.is_delete=0 
+	and d.order_status=9
+	and b2.supplier_id = '1741351701'
+	and d.order_day_key between 20170801 and 20171031
+group by 1,2,3
+)T1
+)T
+where
+	T.paixu<=5)B1
+ON A.ÉÌ»§ID = B1.ÉÌ»§ID
+
+
+
+
+
+/*(SELECT CONCAT('#',b.wid) AS shanghuid,
+		c.caipin_name AS caipin,
+		SUM(c.number) AS xiaoliang
+	FROM dim_business b
+	LEFT JOIN fact_caipin_details c ON b.shop_id = c.shop_id
+	WHERE b.is_delete = 0
+		AND b.is_test = 0
+		AND c.order_day_key BETWEEN 20170801 AND 20171031
+		AND b.supplier_id = '1741351701'
+		AND c.order_status = 9
+GROUP BY 1,2
+ORDER BY xiaoliang DESC
+LIMIT 5)B ON A.ÉÌ»§ID = B.shanghuid*/
+		
+
+/*
+ÐìÞ±£¬ÐÂÉÌ»§
+*/
+
+SELECT * FROM
+(select FLOOR(a.order_day_key/100) AS 'ÔÂ·Ý',
+		d.city_region AS '´óÇø',
+		split_part(b.area,'£¨',1) AS 'ÐÇÏµ',
+		CONCAT('#',b.waimai_release_id) AS 'ÉÌ»§id',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		b.category AS 'Æ·Àà',
+		b.category1_name AS 'ÉÌ»§ÀàÐÍ',
+		(from_unixtime(b.create_time+8*3600,'yyyy-MM-dd')) AS '½¨µêÊ±¼ä',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS 'Á÷Ë®',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '¶©µ¥Á¿',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0))/COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '¿Íµ¥¼Û',
+from dim_business b
+join fact_order a on a.shop_id=b.shop_id
+JOIN dim_aoi d ON b.aoi_id=d.aoi_id
+where a.break_type=0
+	and a.order_day_key between 20170801 and 20171031
+	and b.is_test = 0
+	and b.is_delete = 0
+	and from_unixtime(b.create_time+8*3600,'yyyyMMdd')>='20170801'
+	and from_unixtime(b.create_time+8*3600,'yyyyMMdd')<='20171031'
+	and b.city_real='±±¾©'
+group by 1,2,3,4,5,6,7,8)A
+
+LEFT JOIN 
+
+(SELECT  CONCAT('#',T.wid) AS shanghuid, 
+		 SUM(if(t1>=2 ,
+         1,
+         0))/COUNT (pass_uid) AS '¸´¹ºÂÊ'
+    FROM 
+        (SELECT a1.pass_uid, a1.wid, 
+         COUNT (a1.order_id) t1
+         FROM fact_order a1 
+		 LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+		 WHERE	a1.order_day_key BETWEEN 20170801 AND 20171031
+                AND a1.break_type=0
+                AND b.city_real = '±±¾©'
+				AND from_unixtime(b.create_time+8*3600,'yyyyMMdd')>='20170801'
+				AND from_unixtime(b.create_time+8*3600,'yyyyMMdd')<='20171031'
+                AND b.is_test=0
+				AND b.is_delete = 0
+        GROUP BY  1,2) T GROUP BY 1)B ON A.ÉÌ»§id = B.shanghuid
+
+
+/*
+Íõ»ÛÃ÷ ÐÂÀ±µÀ²îÆÀÊý¾Ý ¶©µ¥Î¬¶È
+*/
+
+SELECT
+	CONCAT('#', CAST(a.order_id AS STRING)) AS '¶©µ¥ID',
+	CONCAT('#', a.pass_uid) AS 'ÓÃ»§ID',
+	CONCAT('#', c.supplier_id) AS '¹©Ó¦ÉÌid',
+	c.name AS '¹©Ó¦ÉÌÃû³Æ',
+	b.ka_brand AS 'Æ·ÅÆ',
+	b.busi_name AS 'ÉÌ»§Ãû³Æ',
+	a.order_day_key AS 'ÈÕÆÚ',
+	b.city_real AS '³ÇÊÐ',
+	b.aoi AS 'ÉÌÈ¦',
+	a.delivery_party AS 'ÅäËÍ·½Ãû³Æ',
+	a.real_total_price/1000 AS '»ÝÇ°¼Û¸ñ',
+	d.score AS 'ÆÀ·Ö',
+	d.content AS 'ÆÀ¼Û',
+	e.sale_name AS 'ÏúÊÛÈËÔ±',
+	a.order_time AS 'ÏÂµ¥Ê±¼ä'
+FROM fact_order a 
+	LEFT JOIN dim_business b ON a.shop_id=b.shop_id 
+	LEFT JOIN comment_content_new d ON a.order_id=d.order_id
+	LEFT JOIN dim_order_sale_id e ON a.sale_id = e.sale_id
+	LEFT JOIN dim_supplier c ON b.supplier_id = c.supplier_id
+WHERE a.order_status=9 
+	AND a.break_type = 0
+	AND b.is_delete=0 
+    AND b.is_test=0
+	AND a.order_day_key BETWEEN 20171001 AND 20171031 
+	AND d.score IN (1,2) AND c.supplier_id = '1706003526'
+
+/*
+»Æ¼ÒÓñ ±±¾©µØÇøaoiÊý¾Ý
+*/
+
+SELECT a.order_day_key AS 'ÈÕÆÚ',
+		CONCAT('#',b.aoi_id) AS 'aoi id',
+		split_part(b.area,'£¨',2) AS 'aoiËùÔÚÇøÓò',
+		b.aoi AS 'ÉÌÈ¦',
+		COUNT(a.order_id) AS '×ÜÍê³Éµ¥',
+		COUNT(IF(a.order_time>='11:00' AND a.order_time<='13:00', a.order_id,NULL)) AS 'Îç¸ß·åÍê³Éµ¥',
+		COUNT(IF(d.wuliu_enum_value = 1, a.order_id, NULL)) AS '×ÜÎïÁ÷µ¥',
+		COUNT(IF(d.wuliu_enum_value = 1 AND a.order_time>='11:00' AND a.order_time<='13:00' ,a.order_id,NULL)) AS 'Îç¸ß·åÎïÁ÷µ¥'
+	FROM fact_order a 
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	LEFT JOIN dim_order_delivery_party d ON a.delivery_party = d.delivery_party
+	WHERE a.break_type = 0
+		AND a.order_status = 9
+		AND a.order_day_key BETWEEN 20170914 AND 20170921
+		AND a.order_id IN		
+		(SELECT a.out_order_id
+			FROM fact_wuliu_order a
+			WHERE a.order_status = 9
+				AND a.city_name = '±±¾©'
+				AND a.order_day_key BETWEEN 20170914 AND 20170921)
+				AND b.is_test = 0
+				AND b.is_delete = 0
+GROUP BY 1,2,3,4
+
+
+
+/*
+·üÌì ±ØÊ¤¿Í ²»Í¬Ô­ÒòÈ¡Ïûµ¥Êý¾Ý
+*/
+
+SELECT b.city_real AS '³ÇÊÐ',
+		b.busi_name AS 'ÉÌ»§',
+		CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		COUNT(a.order_id) AS 'ÏÂµ¥Á¿',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS 'Íê³Éµ¥',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS '»ÝÇ°Á÷Ë®',
+		COUNT(IF(a.order_status = 10, a.order_id, NULL)) AS 'È¡Ïûµ¥',
+		SUM(IF(a.order_status = 10, a.real_total_price/1000, 0)) AS 'È¡Ïûµ¥Á÷Ë®',
+		COUNT(IF(a.order_status = 10 AND a.cancel_reason_status = 7, a.order_id, NULL)) AS '³¬Ê±ÉÌ»§Î´ÏìÓ¦È¡Ïûµ¥',
+		SUM(IF(a.order_status = 10 AND a.cancel_reason_status = 7, a.real_total_price/1000, NULL)) AS '³¬Ê±ÉÌ»§Î´ÏìÓ¦È¡Ïûµ¥Á÷Ë®',
+		COUNT(IF(a.order_status = 10 AND a.cancel_reason_status = 3, a.order_id, NULL)) AS '²ËÆ·ÊÛÍêÈ¡Ïûµ¥',
+		SUM(IF(a.order_status = 10 AND a.cancel_reason_status = 3, a.real_total_price/1000, NULL)) AS '²ËÆ·ÊÛÍêÈ¡Ïûµ¥Á÷Ë®',
+		COUNT(IF(a.order_status = 10 AND a.cancel_reason_status = 5, a.order_id, NULL)) AS 'ÓÃ»§È¡Ïûµ¥',
+		SUM(IF(a.order_status = 10 AND a.cancel_reason_status = 5, a.real_total_price/1000, NULL)) AS 'ÓÃ»§È¡Ïûµ¥Á÷Ë®'
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+		WHERE b.is_delete = 0
+			AND b.is_test = 0
+			AND a.break_type = 0
+			AND a.order_day_key BETWEEN 20171001 AND 20171031
+			AND a.supplier_id
+				IN('1450203709', 
+					'1450203309', 
+					'1450118486 ',
+					'1441901768 ',
+					'1441874283 ',
+					'1441743729 ',
+					'1438161150 ',
+					'8768576007540836758') 
+GROUP BY 1, 2, 3
+
+
+/*
+Âóµ±ÀÍ×ÛºÏÆÀ·Ö£¬ÉÌ»§Î¬¶È
+*/
+SELECT CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		AVG(a.score) AS '×ÛºÏÆÀ·Ö'
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND a.order_status = 9
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND a.order_day_key BETWEEN 20170901 AND 20170930
+		AND b.wid IN(
+		
+'1847972894',
+'1847973040',
+'1847973146',
+'1847973451',
+'1847973726',
+'1847973841',
+'1847973919',
+'1851266293',
+'1851289872',
+'1851300609',
+'1855852556',
+'1856018342',
+'1856018427',
+'1857448649',
+'1858712873',
+'1858712946',
+'1858713025',
+'1858713103',
+'1858713195',
+'1859078145',
+'1859154984',
+'1859162941',
+'1860040053',
+'1862141086',
+'1863849555',
+'1863849654',
+'1866160232',
+'1867029671',
+'1867329039',
+'1867329265',
+'1867329357',
+'1867333691',
+'1867333842',
+'1867338273',
+'1868778370',
+'1868780164',
+'1868781057',
+'1868781768',
+'1868783325',
+'1868784021',
+'1868784593',
+'1868784977',
+'1868785416',
+'1868785808',
+'1868788139',
+'1868788590',
+'1868789093',
+'1868789640',
+'1872152726',
+'1872166078',
+'1873218186',
+'1874283341',
+'1874334118',
+'1879355003',
+'1879355004',
+'1879355023',
+'1879355024',
+'1879355080',
+'1879355115',
+'1879355136',
+'1879419127',
+'1885289811',
+'1885289891',
+'1885291008',
+'1885291119',
+'1885398984',
+'1887176899',
+'1887181308',
+'1889519978',
+'1889521746',
+'1893789188',
+'1893790865',
+'1893792377',
+'1893792734',
+'1893793036',
+'1893793242',
+'1893793375',
+'1893793456',
+'1893793647',
+'1893793759',
+'1893793824',
+'1893794018',
+'1895977986',
+'1895978643',
+'1895979168',
+'1895979688',
+'1895980212',
+'1895981014',
+'1895981457',
+'1895981930',
+'1895983111',
+'1895983390',
+'1895985803',
+'1895987442',
+'1895988117',
+'1895988815',
+'1895989756',
+'1895990271',
+'1895990698',
+'1895991343',
+'1896093547',
+'1896096479',
+'1896099239',
+'1896157971',
+'1896159367',
+'1896160741',
+'1896161737',
+'1896162831',
+'1896163795',
+'1896167102',
+'1896168065',
+'1896169958',
+'1896233303',
+'1896241119',
+'1896248233',
+'1896251041',
+'1896252573',
+'1896254241',
+'1896338322',
+'1896342466',
+'1896343905',
+'1896746305',
+'1902217448',
+'1902234566',
+'1902235111',
+'1902239008',
+'1902239072',
+'1902239206',
+'1902239311',
+'1902239366',
+'1902239435',
+'1902239591',
+'1902239837',
+'1902240257',
+'1902240267',
+'1902240340',
+'1902240463',
+'1902240631',
+'1902240661',
+'1902600846',
+'1902601541',
+'1908048149',
+'1908378221',
+'1908855671',
+'1908994719',
+'1909104737',
+'1910219241',
+'1910919122',
+'1910926550',
+'1910928219',
+'1910929805',
+'1910932297',
+'1911036451',
+'1911060872',
+'1914623410',
+'1914786849',
+'1914787918',
+'1914789095',
+'1915104773',
+'1915224583',
+'1915236608',
+'1915240952',
+'1915543808',
+'1915556210',
+'1915665327',
+'1915691357',
+'1915716837',
+'1915726502',
+'1915733383',
+'1915747630',
+'1924668011',
+'1926390622',
+'1926438739',
+'1926480511',
+'1926839231',
+'1927787852',
+'1932901279',
+'1932901380',
+'1934068388',
+'1934080851',
+'1934086077',
+'1934180600',
+'1934180627',
+'1934180664',
+'1934180694',
+'1934180725',
+'1934180747',
+'1934180771',
+'1934180797',
+'1934180819',
+'1934180840',
+'1934180870',
+'1934180893',
+'1934180911',
+'1934180935',
+'1934180961',
+'1934180980',
+'1934181015',
+'1934576499',
+'1934578235',
+'1934614597',
+'1934614709',
+'1934614779',
+'1934914039',
+'1936683521',
+'1936683772',
+'1938910346',
+'1939021919',
+'1939043214',
+'1954848432',
+'1955961290',
+'1955969318',
+'1955986630',
+'1956111621',
+'1956165610',
+'1970561664',
+'1970572977',
+'1970573086',
+'1970574711',
+'1970576568',
+'1970577615',
+'1970577633',
+'1970579291',
+'1970579351',
+'1970579385',
+'1970580958',
+'1970581017',
+'1970581091',
+'1970584870',
+'1970585383',
+'1970589312',
+'1970589363',
+'1970589506',
+'1970589561',
+'1970589685',
+'1970589750',
+'1970591459',
+'1970591797',
+'1970594580',
+'1970594623',
+'1970594742',
+'1970600341',
+'1970615751',
+'1972628759',
+'1972628974',
+'1972642786',
+'1973796143',
+'1973816409',
+'1973816450',
+'1974058541',
+'1974650645',
+'1974650671',
+'1974650727',
+'1978871164',
+'1978927056',
+'1979620599',
+'1981672618',
+'1983879152',
+'1986069229',
+'1986425560',
+'1986431173',
+'1986447532',
+'1986451415',
+'1986468336',
+'1986481837',
+'1986490917',
+'1986498736',
+'1986504978',
+'1993454984',
+'1996794134',
+'1997624381',
+'1997632324',
+'2000045952',
+'2001615185',
+'2001615246',
+'2001615301',
+'2001615340',
+'2001615390',
+'2001615453',
+'2003651060',
+'2003826573',
+'2012396659',
+'2012412691',
+'2015818634',
+'2020979240',
+'2021805110',
+'2021824394',
+'2021828737',
+'2021829190',
+'2021829441',
+'2021829488',
+'2021829692',
+'2021829918',
+'2021830053',
+'2021830105',
+'2021830215',
+'2025684360',
+'2025695222',
+'2025700553',
+'2025702221',
+'2025736423',
+'2025740726',
+'2025954877',
+'2029684303',
+'2029697638',
+'2029787322',
+'2035657312',
+'2035657396',
+'2035657441',
+'2035657514',
+'2035657642',
+'2035657717',
+'2037713966',
+'2039034671',
+'2043401240',
+'2044126261',
+'2045557444',
+'2045787306',
+'2045787609',
+'2045787775',
+'2045788124',
+'2045788379',
+'2045788863',
+'2045789043',
+'2045789109',
+'2045789211',
+'2045790009',
+'2045790026',
+'2045824835',
+'2049591025',
+'2049595007',
+'2049595019',
+'2049595057',
+'2049595087',
+'2049595141',
+'2053119998',
+'2054179597',
+'2054201056',
+'2054204551',
+'2054207955',
+'2057637366',
+'2057666369',
+'2059947370',
+'2062310856',
+'2062330606',
+'2062352654',
+'2062352678',
+'2062352691',
+'2062352711',
+'2062352729',
+'2062352732',
+'2062352777',
+'2062352813',
+'2062352857',
+'2062352894',
+'2062352932',
+'2062352964',
+'2062352988',
+'2064709091',
+'2065293004',
+'2065334843',
+'2065456494',
+'2065456526',
+'2065924340',
+'2065925765',
+'2068137529',
+'2068141377',
+'2068147873',
+'2076885846',
+'2077172024',
+'2077198628',
+'2077200079',
+'2077200226',
+'2077200251',
+'2077200286',
+'2077261953',
+'2079892072',
+'2083408476',
+'2083714702',
+'2086385243',
+'2086397187',
+'2086473409',
+'2086484087',
+'2086491097',
+'2086494940',
+'2086505682',
+'2086516422',
+'2086850106',
+'2086852214',
+'2086861593',
+'2086861623',
+'2086861657',
+'2086861692',
+'2086861721',
+'2086861776',
+'2086861826',
+'2086861852',
+'2088625482',
+'2088628490',
+'2088628521',
+'2088628578',
+'2088628597',
+'2088631514',
+'2089907057',
+'2089923404',
+'2089928341',
+'2090397118',
+'2090686327',
+'2091349663',
+'2097426398',
+'2099003405',
+'2099005810',
+'2099276281',
+'2099282219',
+'2099282274',
+'2099282298',
+'2099282343',
+'2099282362',
+'2099282397',
+'2099282436',
+'2099282476',
+'2099282528',
+'2099282582',
+'2099303437',
+'2099357302',
+'2099415538',
+'2100229900',
+'2100658172',
+'2100658175',
+'2100658247',
+'2100658314',
+'2100658316',
+'2100658391',
+'2100658455',
+'2100658519',
+'2100658574',
+'2105845357',
+'2106849213',
+'2106855166',
+'2106855204',
+'2106855231',
+'2106855257',
+'2106855312',
+'2106855349',
+'2106855384',
+'2106855415',
+'2106855446',
+'2106855464',
+'2106855486',
+'2107000754',
+'2107014223',
+'2109509125',
+'2109529941',
+'2109540566',
+'2109547450',
+'2109565937',
+'2109570619',
+'2109581909',
+'2109590907',
+'2109595217',
+'2109596728',
+'2109598575',
+'2109602264',
+'2109605380',
+'2111630984',
+'2111864263',
+'2115375757',
+'2115381159',
+'2115381209',
+'2116186836',
+'2116326582',
+'2116631372',
+'2116633566',
+'2116635232',
+'2116637374',
+'2116638645',
+'2116640901',
+'2116643829',
+'2116645115',
+'2117028516',
+'2118701912',
+'2118703001',
+'2118704404',
+'2118705385',
+'2118705822',
+'2118706729',
+'2118706813',
+'2118706896',
+'2120274773',
+'2120275559',
+'2120275583',
+'1516455803',
+'1516456170',
+'1516456862',
+'1516457381',
+'1516461204',
+'1516462420',
+'1516464883',
+'1520489996',
+'1520496410',
+'1520500961',
+'1520505804',
+'1521496236',
+'1522334074',
+'1522335471',
+'1523961845',
+'1528258284',
+'1530292119',
+'1530293575',
+'1530294462',
+'1533133425',
+'1533600929',
+'1533601546',
+'1533602365',
+'1533674306',
+'1534885910',
+'1534894230',
+'1535507068',
+'1535513708',
+'1535521387',
+'1535524207',
+'1535527573',
+'1535529332',
+'1538477656',
+'1538483510',
+'1538488979',
+'1541926811',
+'1544629234',
+'1544633050',
+'1545367035',
+'1547912148',
+'1548085296',
+'1548119236',
+'1548119408',
+'1548135540',
+'1548146882',
+'1548157807',
+'1548162640',
+'1551998888',
+'1552009619',
+'1552022039',
+'1553066163',
+'1553883912',
+'1553885293',
+'1553886303',
+'1553887168',
+'1553888683',
+'1553895037',
+'1553896761',
+'1553898975',
+'1554145872',
+'1554517586',
+'1554572494',
+'1554578223',
+'1555093499',
+'1561014686',
+'1561022192',
+'1561023196',
+'1561024106',
+'1561025164',
+'1561026873',
+'1561029212',
+'1561033897',
+'1561036043',
+'1561037665',
+'1561038763',
+'1561506198',
+'1561833581',
+'1561835435',
+'1561837169',
+'1561839860',
+'1569422901',
+'1570524863',
+'1570554916',
+'1570558255',
+'1570563084',
+'1570915873',
+'1572314186',
+'1572317521',
+'1572739676',
+'1572764802',
+'1572773954',
+'1572784445',
+'1572858100',
+'1572862435',
+'1572873843',
+'1572880806',
+'1572884581',
+'1572887355',
+'1577073546',
+'1577083607',
+'1577105686',
+'1579039871',
+'1579789512',
+'1582685325',
+'1582702304',
+'1582705268',
+'1582707660',
+'1582711694',
+'1584884107',
+'1584885162',
+'1584887235',
+'1584888441',
+'1584889868',
+'1584892627',
+'1584896045',
+'1584934262',
+'1584937793',
+'1584938487',
+'1585654035',
+'1585654596',
+'1585655065',
+'1585656119',
+'1585661141',
+'1585661685',
+'1585662533',
+'1585664971',
+'1585665610',
+'1585666167',
+'1585667352',
+'1585692972',
+'1588156043',
+'1588178445',
+'1588185274',
+'1588323403',
+'1588363040',
+'1588363749',
+'1588364561',
+'1588365222',
+'1588369189',
+'1588369907',
+'1588465839',
+'1590247600',
+'1590249088',
+'1590252030',
+'1590420377',
+'1590423181',
+'1590428613',
+'1590432536',
+'1590437128',
+'1590439887',
+'1590442494',
+'1590444942',
+'1590448969',
+'1590450606',
+'1590452487',
+'1590454539',
+'1590456160',
+'1591037160',
+'1591077337',
+'1593640310',
+'1593665273',
+'1593667863',
+'1593670003',
+'1593671070',
+'1593671946',
+'1593672738',
+'1593674475',
+'1593675533',
+'1593682776',
+'1593683659',
+'1593684280',
+'1593685253',
+'1593713940',
+'1593714598',
+'1593715239',
+'1593715628',
+'1593718124',
+'1593719277',
+'1593719880',
+'1593738114',
+'1594172193',
+'1594951909',
+'1594954714',
+'1594960651',
+'1594962123',
+'1594964798',
+'1594967465',
+'1594980313',
+'1594985948',
+'1594989263',
+'1594991217',
+'1594992708',
+'1594993857',
+'1594995458',
+'1594998599',
+'1594998900',
+'1595000245',
+'1595007884',
+'1595025804',
+'1595143913',
+'1595144848',
+'1595147321',
+'1595148501',
+'1595149372',
+'1595151090',
+'1595431957',
+'1595432748',
+'1600412665',
+'1600415606',
+'1600771765',
+'1600836082',
+'1603161208',
+'1603473479',
+'1603475509',
+'1603476444',
+'1603477378',
+'1603478131',
+'1603479031',
+'1603482228',
+'1603483067',
+'1605823989',
+'1605827724',
+'1605958105',
+'1605960345',
+'1605962670',
+'1605964186',
+'1605965522',
+'1605985893',
+'1607643205',
+'1607648973',
+'1607660524',
+'1607832445',
+'1614951947',
+'1616327397',
+'1616333305',
+'1616336836',
+'1616343433',
+'1616347053',
+'1620340789',
+'1620340795',
+'1620340803',
+'1620345069',
+'1620717824',
+'1620739430',
+'1621950173',
+'1622451440',
+'1622458440',
+'1622752709',
+'1622753965',
+'1622755293',
+'1631003008',
+'1631728528',
+'1632563257',
+'1634567453',
+'1634574998',
+'1634581226',
+'1635974069',
+'1635985506',
+'1635989942',
+'1637692596',
+'1638619201',
+'1638621168',
+'1638622520',
+'1638624143',
+'1638625676',
+'1638643679',
+'1640937336',
+'1641431774',
+'1642305306',
+'1645788649',
+'1645788652',
+'1648625045',
+'1648896415',
+'1654195538',
+'1654635986',
+'1654645648',
+'1654648866',
+'1654653070',
+'1655156376',
+'1656829016',
+'1660480216',
+'1660482569',
+'1660482595',
+'1660482624',
+'1660482634',
+'1660482702',
+'1660482724',
+'1660492922',
+'1661166046',
+'1661313685',
+'1667494491',
+'1667573350',
+'1667700253',
+'1667703270',
+'1668195374',
+'1668759649',
+'1672339683',
+'1678816924',
+'1686712226',
+'1686713254',
+'1686713286',
+'1686713322',
+'1686854466',
+'1686875390',
+'1691944592',
+'1691955743',
+'1692009702',
+'1692017163',
+'1692421313',
+'1695403372',
+'1695453133',
+'1695506574',
+'1695578966',
+'1700864982',
+'1701781594',
+'1704062642',
+'1706517553',
+'1706530806',
+'1706570907',
+'1706659549',
+'1706674434',
+'1709492199',
+'1712404165',
+'1712407425',
+'1712410707',
+'1712412562',
+'1712414209',
+'1712416026',
+'1712418008',
+'1712420000',
+'1712436596',
+'1712438656',
+'1712440135',
+'1712441492',
+'1712442919',
+'1712444848',
+'1713659431',
+'1714430347',
+'1720011172',
+'1720831643',
+'1720831644',
+'1720831646',
+'1720831647',
+'1720831648',
+'1720831649',
+'1721809473',
+'1721822457',
+'1721836584',
+'1736768761',
+'1737268154',
+'1743735442',
+'1745986999',
+'1748924826',
+'1752311933',
+'1753460657',
+'1753460658',
+'1753460659',
+'1753460660',
+'1754117049',
+'1758298820',
+'1758474867',
+'1760151403',
+'1760358628',
+'1762724481',
+'1762746996',
+'1762851887',
+'1771671087',
+'1771955586',
+'1772557315',
+'1774068889',
+'1778786948',
+'1778834148',
+'1781456350',
+'1781513592',
+'1781539124',
+'1781588667',
+'1781758508',
+'1784116152',
+'1787322080',
+'1790033162',
+'1790141101',
+'1790142533',
+'1790143220',
+'1790144591',
+'1790146251',
+'1790146771',
+'1790147871',
+'1790316847',
+'1790478097',
+'1798483171',
+'1809505797',
+'1809547128',
+'1809562095',
+'1809575333',
+'1809581778',
+'1809685201',
+'1815357210',
+'1815393852',
+'1815987345',
+'1815993784',
+'1817291231',
+'1817550136',
+'1817678998',
+'1817780617',
+'1817823400',
+'1817844890',
+'1817845655',
+'1817881574',
+'1817885750',
+'1817886428',
+'1819116486',
+'1825335942',
+'1827868490',
+'1832091538',
+'1832130594',
+'1832337741',
+'1832977955',
+'1836044796',
+'1836475251',
+'1836814227',
+'1837186294',
+'1841542473',
+'1841647728',
+'1841673768',
+'1841689705',
+'1841699925',
+'1845659637',
+'1847264026',
+'1847265247',
+'1847266234',
+'1847302759',
+'1847303952',
+'1847305349',
+'1847306594',
+'1847962992',
+'1847963106',
+'1847968516',
+'1847968609',
+'1847968739',
+'1847968973',
+'1847969408',
+'1847969690',
+'1446833736',
+'1446834063',
+'1446834397',
+'1446835223',
+'1446835903',
+'1446836812',
+'1446837253',
+'1446838080',
+'1446838491',
+'1446838770',
+'1446839029',
+'1446839593',
+'1446839885',
+'1446840385',
+'1446841032',
+'1446841385',
+'1446841686',
+'1446842051',
+'1446842310',
+'1446842941',
+'1446843209',
+'1446843501',
+'1446843777',
+'1446844148',
+'1446846313',
+'1446846609',
+'1446846892',
+'1446847156',
+'1446847490',
+'1446847793',
+'1446848078',
+'1447500472',
+'1450438442',
+'1450440552',
+'1450441033',
+'1450441693',
+'1450442541',
+'1450443219',
+'1450707456',
+'1450708559',
+'1450709318',
+'1450709791',
+'1450710353',
+'1450710837',
+'1450711463',
+'1450712012',
+'1450712480',
+'1450713062',
+'1450713719',
+'1450714544',
+'1450715071',
+'1450716020',
+'1450716681',
+'1450717128',
+'1450717897',
+'1450718561',
+'1450718977',
+'1450719505',
+'1450719948',
+'1450721556',
+'1450722215',
+'1450722879',
+'1450723588',
+'1450724248',
+'1450724928',
+'1450727686',
+'1450728269',
+'1450729170',
+'1450754226',
+'1450755089',
+'1450755855',
+'1450756552',
+'1450757178',
+'1450758085',
+'1450759198',
+'1450760081',
+'1450761484',
+'1450762996',
+'1450763821',
+'1450764521',
+'1450765100',
+'1450766089',
+'1450766597',
+'1450767130',
+'1450767996',
+'1450769615',
+'1450776116',
+'1450776746',
+'1450778042',
+'1450778636',
+'1450779089',
+'1450779968',
+'1450780709',
+'1450781164',
+'1450781822',
+'1450782402',
+'1450783026',
+'1450783457',
+'1450786574',
+'1450787152',
+'1450787819',
+'1450788434',
+'1453782416',
+'1453881114',
+'1453881733',
+'1453882455',
+'1453884400',
+'1453884971',
+'1453885550',
+'1453886439',
+'1453887758',
+'1453888284',
+'1453888905',
+'1453890141',
+'1453891460',
+'1453892703',
+'1453893202',
+'1453894177',
+'1453895005',
+'1453897108',
+'1453898976',
+'1453899545',
+'1453900402',
+'1453901349',
+'1453901921',
+'1453904260',
+'1453904886',
+'1453905643',
+'1453906709',
+'1453908102',
+'1453908793',
+'1453909718',
+'1453910381',
+'1453911831',
+'1453912582',
+'1453913755',
+'1453914938',
+'1453915475',
+'1453916059',
+'1453917324',
+'1453924142',
+'1453925347',
+'1453926735',
+'1453927706',
+'1453928491',
+'1453931016',
+'1453931642',
+'1453967785',
+'1453969444',
+'1453972936',
+'1453973335',
+'1453975040',
+'1453978472',
+'1453980826',
+'1453981366',
+'1453981812',
+'1453982337',
+'1453982779',
+'1453984191',
+'1453984573',
+'1453984959',
+'1453985280',
+'1453986895',
+'1453987189',
+'1453987572',
+'1453987944',
+'1453988259',
+'1453988960',
+'1453989322',
+'1453989701',
+'1453990176',
+'1453990572',
+'1454150192',
+'1458506748',
+'1458811198',
+'1458878230',
+'1458892907',
+'1458894822',
+'1458895834',
+'1458896679',
+'1458897688',
+'1458898659',
+'1458899353',
+'1458900723',
+'1458901606',
+'1458902250',
+'1458902758',
+'1458903406',
+'1458904030',
+'1458904922',
+'1458905500',
+'1458906642',
+'1458907274',
+'1458908447',
+'1458909000',
+'1458909766',
+'1458910364',
+'1458911179',
+'1458911814',
+'1458912345',
+'1458912978',
+'1458914578',
+'1458915424',
+'1458916233',
+'1458916880',
+'1458917418',
+'1458918199',
+'1459280475',
+'1460334827',
+'1460336531',
+'1460338401',
+'1460345055',
+'1460346387',
+'1461414990',
+'1461415511',
+'1461415893',
+'1461416254',
+'1461768257',
+'1461769805',
+'1461771614',
+'1461772380',
+'1461773162',
+'1461774167',
+'1461775088',
+'1461775948',
+'1461776714',
+'1461778687',
+'1461779468',
+'1461780419',
+'1461781039',
+'1461781764',
+'1461783622',
+'1461784230',
+'1461787871',
+'1461788743',
+'1461789445',
+'1461790215',
+'1461790887',
+'1461792411',
+'1461793278',
+'1461796031',
+'1461798419',
+'1461799273',
+'1461799918',
+'1461800939',
+'1461801917',
+'1461805528',
+'1461806268',
+'1461807091',
+'1461808325',
+'1461809759',
+'1461810459',
+'1461811121',
+'1461812132',
+'1461812787',
+'1461813292',
+'1461871163',
+'1461872446',
+'1470279390',
+'1470280440',
+'1470281379',
+'1470284397',
+'1470285704',
+'1470288437',
+'1470290448',
+'1470292525',
+'1470297902',
+'1470305236',
+'1470308177',
+'1470310279',
+'1470312129',
+'1470313517',
+'1470317381',
+'1470323842',
+'1470325201',
+'1470329285',
+'1470340111',
+'1470931867',
+'1470933974',
+'1470937459',
+'1470938296',
+'1470940506',
+'1470941851',
+'1470943790',
+'1470945480',
+'1470946425',
+'1470947388',
+'1470948556',
+'1470949482',
+'1470952864',
+'1470957537',
+'1470958725',
+'1470960564',
+'1470961451',
+'1470963195',
+'1470978719',
+'1470982275',
+'1470983545',
+'1470985734',
+'1470986987',
+'1470988572',
+'1470995995',
+'1470997486',
+'1470998910',
+'1471000056',
+'1471001081',
+'1471002835',
+'1471004300',
+'1471006184',
+'1471061131',
+'1471062258',
+'1471067121',
+'1471096450',
+'1471097440',
+'1471106317',
+'1471115619',
+'1471116896',
+'1471118332',
+'1471120730',
+'1471122020',
+'1471122982',
+'1471124095',
+'1471125475',
+'1471126433',
+'1471127941',
+'1471129011',
+'1471130317',
+'1471131279',
+'1471133935',
+'1471136157',
+'1471137100',
+'1471139816',
+'1471140722',
+'1471141881',
+'1471142873',
+'1471143766',
+'1471144683',
+'1471145939',
+'1471146956',
+'1471148924',
+'1471150583',
+'1471151846',
+'1471155827',
+'1471156828',
+'1471158005',
+'1471159133',
+'1471159803',
+'1471162499',
+'1471164856',
+'1471166126',
+'1471167148',
+'1471168275',
+'1471171857',
+'1471206795',
+'1471208699',
+'1471210289',
+'1471211101',
+'1471213248',
+'1471214846',
+'1471217884',
+'1472461612',
+'1472934513',
+'1472935391',
+'1472936604',
+'1472937279',
+'1472937951',
+'1472938611',
+'1472940236',
+'1472943425',
+'1472944018',
+'1472945152',
+'1472946652',
+'1472947457',
+'1472948451',
+'1472949056',
+'1472949649',
+'1472951357',
+'1476766644',
+'1476769364',
+'1476770150',
+'1476771258',
+'1476772395',
+'1476773817',
+'1476960177',
+'1476960860',
+'1476961875',
+'1476962758',
+'1478758678',
+'1478913686',
+'1479162808',
+'1479163592',
+'1479165429',
+'1479171818',
+'1479173619',
+'1479179378',
+'1479184319',
+'1479196754',
+'1479206427',
+'1479211577',
+'1479257520',
+'1479263630',
+'1479269196',
+'1479272279',
+'1479274839',
+'1479277247',
+'1479280466',
+'1479284581',
+'1479287024',
+'1479293385',
+'1479297812',
+'1479304376',
+'1483027268',
+'1483030354',
+'1483035069',
+'1485627235',
+'1493734383',
+'1493737453',
+'1493738886',
+'1493739981',
+'1493742925',
+'1493743956',
+'1493745083',
+'1493746350',
+'1495826903',
+'1499393242',
+'1499456941',
+'1499459871',
+'1499464848',
+'1499467176',
+'1506711865',
+'1507687883',
+'1507688990',
+'1507690541',
+'1507691831',
+'1507692673',
+'1507693589',
+'1507694989',
+'1507735920',
+'1507763548',
+'1507780370',
+'1508518635',
+'1508571130',
+'1509393395',
+'1509434554',
+'1509447835',
+'1509463029',
+'1509472268',
+'1516407340',
+'1516408309',
+'1516408916',
+'1516409722',
+'1516411036',
+'1516411614',
+'1516412273',
+'1516414586',
+'1516415416',
+'1516415951',
+'1516417469',
+'1516418095',
+'1516418526',
+'1516420241',
+'1516421279',
+'1516423877',
+'1516425216',
+'1516425573',
+'1516426086',
+'1516426915',
+'1516427778',
+'1516428598',
+'1516429360',
+'1516432355',
+'1516432839',
+'1516433742',
+'1516434934',
+'1516438585',
+'1516439937',
+'1516441075',
+'1516441696',
+'1516442037',
+'1516444338',
+'1516444825',
+'1516445405',
+'1516445902',
+'1516449189',
+'1516449711',
+'1516450110',
+'1516450714',
+'1516451228',
+'1516451731',
+'1516452427',
+'1516453086',
+'1516454098',
+'1516454725',
+'1516455178',
+'1428122860',
+'1428123799',
+'1428124706',
+'1428125428',
+'1428125669',
+'1428126592',
+'1428127210',
+'1428127934',
+'1428128136',
+'1428129572',
+'1428130329',
+'1428130846',
+'1428131299',
+'1428131490',
+'1428886086',
+'1429064882',
+'1432117144',
+'1432117500',
+'1432118087',
+'1432118271',
+'1434083041',
+'1434167914',
+'1435235705',
+'1437370503',
+'1437792486',
+'1437792899',
+'1437793463',
+'1437794044',
+'1437794440',
+'1437794806',
+'1437795419',
+'1437796013',
+'1437796447',
+'1437796775',
+'1437797207',
+'1437797597',
+'1437797899',
+'1437798469',
+'1437798778',
+'1437799221',
+'1437799637',
+'1437800258',
+'1437800730',
+'1437801376',
+'1437801770',
+'1437802282',
+'1437803163',
+'1437803566',
+'1437803868',
+'1437804183',
+'1437804494',
+'1437804873',
+'1437805162',
+'1437805567',
+'1437805929',
+'1437806245',
+'1437806572',
+'1437807794',
+'1437808143',
+'1437808879',
+'1437809398',
+'1437809771',
+'1437810342',
+'1437810680',
+'1437811125',
+'1437811523',
+'1437812139',
+'1437812570',
+'1437812888',
+'1437815038',
+'1437815361',
+'1437815882',
+'1437816225',
+'1437816708',
+'1437817470',
+'1437817878',
+'1437818217',
+'1437818666',
+'1437819441',
+'1437819812',
+'1437820227',
+'1437820986',
+'1437821299',
+'1437821783',
+'1437900645',
+'1437923648',
+'1437924071',
+'1437924631',
+'1437925052',
+'1437925489',
+'1437926162',
+'1437926590',
+'1437927516',
+'1437928261',
+'1437928903',
+'1437929357',
+'1437929764',
+'1437930409',
+'1437930790',
+'1437931101',
+'1437932008',
+'1437932486',
+'1437933906',
+'1437934325',
+'1437935229',
+'1437935565',
+'1437935856',
+'1437936298',
+'1437936628',
+'1437937013',
+'1437938326',
+'1437938884',
+'1437939393',
+'1437940125',
+'1437941175',
+'1437941559',
+'1437942042',
+'1437942413',
+'1438135631',
+'1438136134',
+'1438136471',
+'1438137369',
+'1438137659',
+'1438137993',
+'1438140016',
+'1438140433',
+'1438140776',
+'1438141163',
+'1438141604',
+'1438142000',
+'1438144267',
+'1438144584',
+'1438145100',
+'1438145557',
+'1438146211',
+'1438146674',
+'1438147236',
+'1438147586',
+'1438148158',
+'1438148543',
+'1438148993',
+'1438149299',
+'1438149590',
+'1438150234',
+'1438150888',
+'1438151465',
+'1438151837',
+'1442908276',
+'1446607951',
+'1446609279',
+'1446614196',
+'1446634118',
+'1446634496',
+'1446636815',
+'1446637205',
+'1446637876',
+'1446638310',
+'1446639058',
+'1446640899',
+'1446642013',
+'1446642653',
+'1446643270',
+'1446644079',
+'1446644523',
+'1446644978',
+'1446646402',
+'1446646954',
+'1446647566',
+'1446648012',
+'1446649013',
+'1446649311',
+'1446649833',
+'1446650414',
+'1446650822',
+'1446651238',
+'1446651791',
+'1446652234',
+'1446652637',
+'1446652973',
+'1446653455',
+'1446654213',
+'1446654779',
+'1446655188',
+'1446655586',
+'1446655963',
+'1446656322',
+'1446656738',
+'1446657071',
+'1446657597',
+'1446658523',
+'1446658959',
+'1446691636',
+'1446692024',
+'1446692411',
+'1446693131',
+'1446693733',
+'1446694253',
+'1446694919',
+'1446695647',
+'1446781121',
+'1446781542',
+'1446781946',
+'1446782369',
+'1446782850',
+'1446783603',
+'1446784025',
+'1446784388',
+'1446784828',
+'1446785246',
+'1446785675',
+'1446786037',
+'1446786819',
+'1446787230',
+'1446787625',
+'1446788345',
+'1446788655',
+'1446789092',
+'1446790310',
+'1446790710',
+'1446791066',
+'1446791505',
+'1446792091',
+'1446792527',
+'1446792938',
+'1446793275',
+'1446793700',
+'1446794046',
+'1446794521',
+'1446795070',
+'1446798309',
+'1446798795',
+'1446799283',
+'1446799728',
+'1446800318',
+'1446800859',
+'1446801415',
+'1446801805',
+'1446805131',
+'1446805640',
+'1446806180',
+'1446806873',
+'1446808686',
+'1446809048',
+'1446809355',
+'1446809785',
+'1446810081',
+'1446825713',
+'1446826164',
+'1446826564',
+'1446827048',
+'1446827968',
+'1446828439',
+'1446829112',
+'1446829374',
+'1446829951',
+'1446830802',
+'1446831065',
+'1446831373',
+'1446832536',
+'1446833330',
+'4097948150334601716',
+'7093755696339745353',
+'10650404137285322437',
+'13842558989194934838',
+'14126606786301149442',
+'16045578395448249926')
+
+		AND a.score>0
+GROUP BY 1,2
+		
+
+
+/*
+Áõ¹ÚÄÏ
+*/
+
+
+SELECT A.*,
+		A.ÏÂµ¥ÈËÊý/B.·ÃÎÊuv AS 'ÏÂµ¥×ª»¯ÂÊ',
+		A.ÐÂÓÃ»§Êý/A.ÏÂµ¥ÈËÊý AS 'ÐÂ¹Ë¿ÍÕ¼±È',
+		B.*,
+		C.*
+FROM
+(SELECT CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		b.city_real AS '³ÇÊÐ',
+		a.order_day_key AS 'ÈÕÆÚ',
+		SUM(a.real_total_price/1000) AS '»ÝÇ°Á÷Ë®',
+		SUM(a.price/1000) AS '»ÝºóÁ÷Ë®',
+		COUNT(a.order_id) AS 'ÏÂµ¥ÊýÁ¿',
+		COUNT(DISTINCT a.pass_uid) AS 'ÏÂµ¥ÈËÊý',
+		COUNT(DISTINCT IF(a.order_id = 9, a.pass_uid, NULL)) AS '³É½»¹Ë¿ÍÊý',
+		COUNT(CASE WHEN anticheat_new_user_flag = 1 THEN pass_uid ELSE NULL END) AS 'ÐÂÓÃ»§Êý'
+	FROM fact_order a
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND a.order_day_key BETWEEN 20171001 AND 20171031
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND b.wid IN ('1429317493',
+'1429878286',
+'1442505936',
+'1524735093',
+'1529230105',
+'1546208237',
+'1546214052',
+'1546451782',
+'1546452851',
+'1546457103',
+'1585590478',
+'1799385595',
+'1800442010',
+'1809088102',
+'1980617526',
+'2082992649',
+'718073887338382185',
+'1547847315966109277',
+'2935296641594856952',
+'7922143909066445526',
+'12962541624983573616',
+'14250232833189333317',
+'17718131143106407345',
+'15626445299430076592',
+'16308923615142760408')
+GROUP BY 1,2,3,4)A
+
+JOIN
+
+(SELECT CONCAT('#',b.wid ) AS shanghuid,
+		c.shop_day_key AS riqi,
+		SUM(c.shop_uv) AS '·ÃÎÊuv',
+		SUM(c.shop_baoguang_uv) AS 'ÆØ¹âuv',
+		SUM(c.shop_pv) AS '·ÃÎÊpv',
+		SUM(c.shop_baoguang_pv) AS 'ÆØ¹âpv',
+		SUM(c.shop_uv)/SUM(shop_baoguang_uv) AS '·ÃÎÊ×ª»¯ÂÊ'
+		
+	FROM fact_business c
+	LEFT JOIN dim_business b ON b.shop_id = c.shop_id
+	WHERE c.shop_day_key BETWEEN 20171001 AND 20171031
+		AND c.status = 1
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND b.wid IN ('1429317493',
+'1429878286',
+'1442505936',
+'1524735093',
+'1529230105',
+'1546208237',
+'1546214052',
+'1546451782',
+'1546452851',
+'1546457103',
+'1585590478',
+'1799385595',
+'1800442010',
+'1809088102',
+'1980617526',
+'2082992649',
+'718073887338382185',
+'1547847315966109277',
+'2935296641594856952',
+'7922143909066445526',
+'12962541624983573616',
+'14250232833189333317',
+'17718131143106407345',
+'15626445299430076592',
+'16308923615142760408')
+		
+GROUP BY 1,2)B ON A.ÉÌ»§ID = B.shanghuid AND A.ÈÕÆÚ = B.riqi
+
+JOIN
+
+(SELECT  CONCAT('#',T.wid) AS shanghuid, 
+		T.order_day_key AS riqi,
+		SUM(if(t1>=2,1,0)) AS '¸´¹ºÈËÊý',
+		 SUM(if(t1>=2 , 1, 0))/COUNT (pass_uid) AS '¸´¹ºÂÊ'
+    FROM 
+        (SELECT a1.pass_uid, a1.wid, a1.order_day_key,
+         COUNT (a1.order_id) t1
+         FROM fact_order a1 
+		 LEFT JOIN dim_business b ON a1.shop_id = b.shop_id
+		 WHERE	a1.order_day_key BETWEEN 20171001 AND 20171031
+                AND a1.break_type=0
+				AND b.wid IN('1429317493',
+'1429878286',
+'1442505936',
+'1524735093',
+'1529230105',
+'1546208237',
+'1546214052',
+'1546451782',
+'1546452851',
+'1546457103',
+'1585590478',
+'1799385595',
+'1800442010',
+'1809088102',
+'1980617526',
+'2082992649',
+'718073887338382185',
+'1547847315966109277',
+'2935296641594856952',
+'7922143909066445526',
+'12962541624983573616',
+'14250232833189333317',
+'17718131143106407345',
+'15626445299430076592',
+'16308923615142760408')
+                AND b.is_test=0
+				AND b.is_delete = 0
+        GROUP BY  1,2,3) T GROUP BY 1,2)C ON A.ÉÌ»§id = C.shanghuid AND A.ÈÕÆÚ = C.riqi
+		
+
+
+
+
+/*
+ÍõÑ©Î° Âú¼õÉÌ»§|Âú¼õÉÌ»§¸²¸ÇÂÊ
+*/
+
+
+SELECT DISTINCT CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		CONCAT('#',b.supplier_id) AS '¹©Ó¦ÉÌID',
+		d.name AS '¹©Ó¦ÉÌÃû³Æ',
+		e.sale_name AS 'ÏúÊÛ',
+		(CASE WHEN c.is_shop_canjian = 1 AND c.type = 'jian' THEN 1
+		ELSE 0 END) AS 'ÊÇ·ñÂú¼õÉÌ»§',
+		(CASE WHEN b.sys_status IN (0,6,13,14,15) THEN 'ÉÏÏß×´Ì¬'
+		ELSE 'ÆäËû' END) AS 'ÉÌ»§×´Ì¬'
+FROM dim_business b 
+LEFT JOIN fact_shop_all_activity c ON b.waimai_release_id = c.waimai_release_id
+LEFT JOIN dim_supplier d ON b.supplier_id = d.supplier_id
+LEFT JOIN dim_order_sale_id e ON e.sale_id = b.sales_id
+WHERE b.ka_extend_lable_id IN (9,11)
+	AND b.is_test = 0
+	AND b.is_delete = 0
+	AND b.city_real = '±±¾©'
+	AND c.index_day = 20171105
+
+
+
+
+/*
+ÍõÑ©Î° ºÏÍ¬ÕÛ¿ÛÀàÐÍ=³éÓ¶ÀàÐÍ
+*/
+
+
+
+
+SELECT CONCAT('#',b.wid) AS 'ÉÌ»§ID',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		b.ka_brand AS 'Æ·ÅÆ',
+		b.aoi AS 'ÉÌÈ¦',
+		CONCAT('#',b.supplier_id) AS '¹©Ó¦ÉÌID',
+		c.yakuan_type AS 'Ñº¿î·½Ê½',
+		c.hetong_zhekou AS 'ºÏÍ¬ÕÛ¿Û',
+		c.guarantee_value AS '±£µ×³éÓ¶½ð¶î',
+		e.sale_name AS 'ÏúÊÛ',
+		b.delivery_party AS 'ÅäËÍ·½',
+		c.hetong_zhekou_type AS '³éÓ¶ÀàÐÍ'
+FROM fact_supplier c 
+LEFT JOIN dim_business b ON b.supplier_id = c.supplier_id
+LEFT JOIN dim_order_sale_id e ON e.sale_id = b.sales_id
+WHERE b.is_delete = 0
+	AND b.is_test = 0
+	AND b.ka_extend_lable_id IN (9,11)
+	AND supplier_day_key = 20171105
+
+
+
+/*
+Óà¸Õ
+*/
+
+
+
+
+SELECT
+	CONCAT('#', CAST(a.order_id AS STRING)) AS '¶©µ¥ID',
+	CONCAT('#', a.pass_uid) AS 'ÓÃ»§ID',
+	CONCAT('#', c.supplier_id) AS '¹©Ó¦ÉÌid',
+	b.busi_name AS 'ÉÌ»§Ãû³Æ',
+	a.order_day_key AS 'ÈÕÆÚ',
+	b.city_real AS '³ÇÊÐ',
+	a.real_total_price/1000 AS 'Ô­¼Û',
+	d.score AS 'ÆÀ·Ö',
+	a.service_score AS 'ÅäËÍÆÀ·Ö',
+	d.content AS 'ÆÀ¼Û',
+	a.order_time AS 'ÏÂµ¥Ê±¼ä'
+FROM fact_order a 
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id 
+	LEFT JOIN comment_content_new d ON a.order_id = d.order_id
+	LEFT JOIN dim_supplier c ON b.supplier_id = c.supplier_id
+WHERE a.order_status = 9 
+	AND a.break_type = 0
+	AND b.is_delete = 0 
+    AND b.is_test = 0
+	AND a.order_day_key BETWEEN 20171001 AND 20171031 
+	AND d.score > 0 
+	AND a.service_score > 0
+	AND c.supplier_id IN('1436138230','1935604268','1935608451','1935619743','1935636178','1935694679','1935702058')
+
+
+
+
+
+
+/*
+ÕÅÑÇ»Ô,È«³ÇËÍ
+*/
+
+
+
+
+SELECT A.*,
+		B.*,
+		C.*
+FROM
+(SELECT a.order_day_key AS 'ÈÕÆÚ',
+		CONCAT('#',b.wid) AS 'ÉÌ»§id',
+		b.busi_name AS 'ÉÌ»§Ãû³Æ',
+		COUNT(a.order_id) AS '×Ü¶©µ¥Á¿',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS 'Íê³Éµ¥Á¿',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS '»ÝÇ°Á÷Ë®',
+		SUM(IF(a.order_status = 9, a.price/1000, 0)) AS '»ÝºóÁ÷Ë®',
+		COUNT(CASE WHEN anticheat_new_user_flag = 1 THEN pass_uid ELSE null END) AS 'ÐÂÓÃ»§',
+		COUNT(DISTINCT IF(anticheat_new_user_flag != 1, pass_uid,NULL)) AS 'ÀÏÓÃ»§',
+		SUM(case when a.shop_butie>0 AND a.order_status = 9 then a.shop_butie/1000 else 0 end)
+			+ SUM(case when shop_quan_price>0 AND a.order_status = 9 then a.shop_quan_price/1000 else 0 end) AS 'ÉÌ»§²¹Ìù',
+		SUM(case when a.discount_baidufee_price>0  AND a.order_status = 9 then a.discount_baidufee_price/1000  else 0 end) 
+			+ SUM(case when a.quan_price>0  AND a.order_status = 9 then a.quan_price/1000 else 0 end) AS '°Ù¶È²¹Ìù'
+	FROM fact_order a 
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND a.order_day_key BETWEEN 20171025 AND 20171107
+		AND b.wid IN ('1542665228',
+'1542665603',
+'1542666041',
+'1542666717',
+'1542667259',
+'1542667846',
+'1542668465',
+'1542668906',
+'1542669334',
+'1542669937',
+'1542670373',
+'1542670733',
+'1542671156',
+'1554587609',
+'1557173891',
+'1661352906',
+'1661354896',
+'1686023122',
+'1752550465',
+'1808150712',
+'1836304305',
+'1836315532',
+'1928192656',
+'1928205132',
+'1928212353',
+'1928217756',
+'1957233363',
+'1983865226',
+'1983886015',
+'2018042465',
+'2113492906',
+'2131120020')
+
+GROUP BY 1,2,3)A
+
+JOIN
+
+(SELECT c.shop_day_key AS riqi,
+		CONCAT('#',b.wid) AS shanghuid,
+		b.busi_name AS shanghumingcheng,
+		SUM(c.shop_uv) AS '·ÃÎÊuv',
+		SUM(c.shop_baoguang_uv) AS 'ÆØ¹âuv',
+		SUM(c.shop_pv) AS '·ÃÎÊpv',
+		SUM(c.shop_baoguang_pv) AS 'ÆØ¹âpv'
+	FROM fact_business c
+	LEFT JOIN dim_business b ON c.shop_id = b.shop_id
+	WHERE c.status = 1
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND b.wid IN ('1542665228',
+'1542665603',
+'1542666041',
+'1542666717',
+'1542667259',
+'1542667846',
+'1542668465',
+'1542668906',
+'1542669334',
+'1542669937',
+'1542670373',
+'1542670733',
+'1542671156',
+'1554587609',
+'1557173891',
+'1661352906',
+'1661354896',
+'1686023122',
+'1752550465',
+'1808150712',
+'1836304305',
+'1836315532',
+'1928192656',
+'1928205132',
+'1928212353',
+'1928217756',
+'1957233363',
+'1983865226',
+'1983886015',
+'2018042465',
+'2113492906',
+'2131120020')
+		AND c.shop_day_key BETWEEN 20171025 AND 20171107
+GROUP BY 1,2,3)B ON A.ÈÕÆÚ = B.riqi AND A.ÉÌ»§id = B.shanghuid
+
+JOIN
+(SELECT a.order_day_key AS riqi,
+		CONCAT('#',b.wid) AS shanghuid,
+		COUNT(a.order_id) AS 'È«³ÇËÍµ¥Á¿'
+	FROM fact_order a 
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+	AND a.order_status = 9
+	AND b.is_delete = 0
+	AND b.is_test = 0
+	AND a.order_day_key BETWEEN 20171025 AND 20171107
+	AND a.order_id 
+		IN(SELECT a.out_order_id
+		FROM fact_wuliu_order a
+		WHERE a.order_status = 9
+			AND a.order_type = 1004
+			AND a.order_day_key BETWEEN 20171025 AND 20171107
+			)
+	AND b.wid IN ('1542665228',
+'1542665603',
+'1542666041',
+'1542666717',
+'1542667259',
+'1542667846',
+'1542668465',
+'1542668906',
+'1542669334',
+'1542669937',
+'1542670373',
+'1542670733',
+'1542671156',
+'1554587609',
+'1557173891',
+'1661352906',
+'1661354896',
+'1686023122',
+'1752550465',
+'1808150712',
+'1836304305',
+'1836315532',
+'1928192656',
+'1928205132',
+'1928212353',
+'1928217756',
+'1957233363',
+'1983865226',
+'1983886015',
+'2018042465',
+'2113492906',
+'2131120020')
+GROUP BY 1,2) C ON A.ÈÕÆÚ = C.riqi AND A.ÉÌ»§id = C.shanghuid
+
+
+
+
+/*
+ÂÞÎÄÇ¿
+*/
+
+
+
+
+SELECT A.*,
+		D.»î¶¯ÉÌ»§Êý,
+		B.*,
+		A.³öµ¥ÉÌ»§Êý/B.ÔÚÏßºÏ×÷ÉÌ»§Êý AS '¶¯ÏúÂÊ',
+		C.*
+FROM
+(SELECT a.order_day_key AS 'ÈÕÆÚ',
+		b.city_real AS '³ÇÊÐ',
+		COUNT(a.order_id) AS '¶©µ¥Á¿',
+		COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS 'Íê³Éµ¥Á¿',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0)) AS '»ÝÇ°Á÷Ë®',
+		COUNT(DISTINCT a.waimai_release_id) AS '³öµ¥ÉÌ»§Êý',
+		SUM(IF(a.order_status = 9, a.real_total_price/1000, 0))/COUNT(IF(a.order_status = 9, a.order_id, NULL)) AS '¿Íµ¥¼Û',
+		SUM(case when a.shop_butie>0 AND a.order_status = 9 then a.shop_butie/1000 else 0 end)
+			+ SUM(case when shop_quan_price>0 AND a.order_status = 9 then a.shop_quan_price/1000 else 0 end) AS 'ÉÌ»§²¹Ìù',
+		SUM(case when a.discount_baidufee_price>0  AND a.order_status = 9 then a.discount_baidufee_price/1000  else 0 end) 
+			+ SUM(case when a.quan_price>0  AND a.order_status = 9 then a.quan_price/1000 else 0 end) AS '°Ù¶È²¹Ìù' ,
+		COUNT(CASE WHEN anticheat_new_user_flag = 1 THEN pass_uid ELSE null END) AS 'ÐÂÓÃ»§'
+	FROM fact_order a 
+	LEFT JOIN dim_business b ON a.shop_id = b.shop_id
+	WHERE a.break_type = 0
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND a.order_day_key BETWEEN 20170801 AND 20171031
+		AND a.supplier_id = '10401283526486593987'
+GROUP BY 1,2)A
+
+JOIN
+
+(SELECT c.shop_day_key AS yuefen,
+		b.city_real,
+		COUNT(DISTINCT IF(c.sys_status IN (0,6,13,14,15), c.waimai_release_id, NULL)) AS 'ÔÚÏßºÏ×÷ÉÌ»§Êý',
+		SUM(c.shop_uv) AS '·ÃÎÊuv',
+		SUM(c.shop_baoguang_uv) AS 'ÆØ¹âuv',
+		SUM(c.shop_pv) AS '·ÃÎÊpv',
+		SUM(c.shop_baoguang_pv) AS 'ÆØ¹âpv'
+	FROM fact_business c
+	LEFT JOIN dim_business b ON c.shop_id = b.shop_id
+	WHERE c.status = 1
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND b.supplier_id = '10401283526486593987'
+		AND c.shop_day_key BETWEEN 20170801 AND 20171031
+GROUP BY 1,2)B ON A.ÈÕÆÚ = B.yuefen AND A.³ÇÊÐ = B.city_real
+
+JOIN 
+
+(SELECT d.make_date_key AS yuefen,
+		b.city_real,
+		SUM(IF(d.source = 'baidu', d.liushui_fee, 0))/sum(d.liushui_fee) AS '°Ù¶ÈÊÐÕ¼',
+		SUM(IF(d.source = 'meituan', d.liushui_fee, 0))/SUM(d.liushui_fee) AS 'ÃÀÍÅÊÐÕ¼',
+		SUM(IF(d.source = 'ele', d.liushui_fee, 0))/SUM(d.liushui_fee) AS '¶öÁËÃ´ÊÐÕ¼'
+	FROM fact_shop_all d
+	LEFT JOIN dim_business b ON d.merge_shop_id = b.wid
+	WHERE d.make_date_key BETWEEN 20170801 AND 20171031
+		AND b.is_delete = 0
+		AND b.is_test = 0
+		AND b.supplier_id = '10401283526486593987'
+GROUP BY 1,2)C ON A.ÈÕÆÚ = C.yuefen AND A.³ÇÊÐ = C.city_real
+
+JOIN
+
+(select a.index_day AS yuefen,
+		b.city_real,
+		count(distinct a.waimai_release_id)'»î¶¯ÉÌ»§Êý'
+from fact_shop_all_activity a 
+join dim_business b on a.waimai_release_id=b.waimai_release_id
+where a.index_day between 20170801 and 20171031 
+	and a.is_shop_canjian=1 
+	and b.sys_status in (0,6,13,14,15) 
+	and b.is_delete=0 
+	and b.is_test=0 
+	AND b.supplier_id = '10401283526486593987'
+group by 1,2)D ON A.ÈÕÆÚ = D.yuefen AND A.³ÇÊÐ = D.city_real		
